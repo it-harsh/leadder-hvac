@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { after } from 'next/server'
 import { NextResponse } from 'next/server'
 
 const supabaseAdmin = createClient(
@@ -73,9 +74,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fire webhook + GHL — both non-blocking, both always attempted
-    void fireWebhookAsync(businessId, lead)
-    void fireGHLAsync(businessId, lead)
+    // Fire webhook + GHL after response — after() keeps function alive until both complete
+    after(async () => {
+      await Promise.allSettled([
+        fireWebhookAsync(businessId, lead),
+        fireGHLAsync(businessId, lead),
+      ])
+    })
 
     return NextResponse.json({ success: true, lead })
   } catch (error) {
@@ -108,30 +113,47 @@ async function fireGHLAsync(businessId: string, lead: Record<string, unknown>) {
     }
 
     // Step 1 — Create contact
+    const contactPayload = {
+      locationId: ghl_location_id,
+      firstName: lead.first_name,
+      lastName: lead.last_name,
+      email: lead.email,
+      phone: lead.phone,
+      address1: lead.address,
+      city: lead.city,
+      state: lead.state,
+      postalCode: lead.zip,
+      source: 'Leadder',
+      tags: ['leadder'],
+    }
+
     const contactRes = await fetch('https://services.leadconnectorhq.com/contacts/upsert', {
       method: 'POST',
       headers,
-      body: JSON.stringify({
-        locationId: ghl_location_id,
-        firstName: lead.first_name,
-        lastName: lead.last_name,
-        email: lead.email,
-        phone: lead.phone,
-        address1: lead.address,
-        city: lead.city,
-        state: lead.state,
-        postalCode: lead.zip,
-        source: 'Leadder',
-        tags: ['leadder'],
-      }),
+      body: JSON.stringify(contactPayload),
     })
 
     if (!contactRes.ok) {
-      console.error('[ghl] Contact creation failed — HTTP', contactRes.status, await contactRes.text().catch(() => ''))
+      console.error('[ghl] Contact upsert failed — HTTP', contactRes.status, await contactRes.text().catch(() => ''))
       return
     }
 
-    const { contact } = await contactRes.json()
+    let { contact } = await contactRes.json()
+
+    // If upsert returned a deleted contact, force-create a fresh one
+    if (contact?.dateDeleted) {
+      const createRes = await fetch('https://services.leadconnectorhq.com/contacts/', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(contactPayload),
+      })
+      if (!createRes.ok) {
+        console.error('[ghl] Contact recreate failed — HTTP', createRes.status, await createRes.text().catch(() => ''))
+        return
+      }
+      const created = await createRes.json()
+      contact = created.contact
+    }
 
     // Build opportunity name: "John Smith · Split System · 2 Ton · $3,800–$4,900"
     const priceRange = lead.price_good && lead.price_best
