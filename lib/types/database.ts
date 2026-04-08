@@ -117,6 +117,10 @@ export interface BusinessProductConfig {
   closet_additional_cost: number
   garage_additional_cost: number
   crawl_space_additional_cost: number
+  heads_2_additional_cost: number
+  heads_3_additional_cost: number
+  heads_4plus_additional_cost: number
+  oil_additional_cost: number
   created_at: string
   updated_at: string
 }

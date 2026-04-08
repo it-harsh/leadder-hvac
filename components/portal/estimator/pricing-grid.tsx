@@ -13,6 +13,8 @@ import { PricingCell } from './pricing-cell'
 import { SystemConfigPanel } from './system-config-panel'
 import { PricingSettings } from './pricing-settings'
 import { LocationAdjustments } from './location-adjustments'
+import { MiniSplitHeadsCard } from './mini-split-heads-card'
+import { FuelTypeCard } from './fuel-type-card'
 import { ProductPricingModal } from './product-pricing-modal'
 
 const supabase = createClient()
@@ -154,6 +156,10 @@ export function PricingGridComponent({
   }
 
   const isService = product.category === 'service'
+  const isMiniSplit = product.slug === 'mini-split'
+  const isPackaged = product.slug === 'packaged-system'
+  const hasFuelType = product.slug === 'furnace' || product.slug === 'boiler'
+  const showLocationCard = !isMiniSplit && !isPackaged
   const allCapacitiesDisabled = !isService && localCapacities.length > 0 && localCapacities.every(c => !c.is_enabled)
 
   if (allCapacitiesDisabled) {
@@ -355,8 +361,28 @@ export function PricingGridComponent({
       />
       )}
 
-      {/* Task 8: Location Adjustments - Hide for services */}
-      {!isService && (
+      {/* Mini Split: Number of Heads Additional Costs */}
+      {!isService && isMiniSplit && (
+        <MiniSplitHeadsCard
+          businessId={businessId}
+          productId={product.id}
+          productConfig={localProductConfig}
+          onConfigUpdate={setLocalProductConfig}
+        />
+      )}
+
+      {/* Furnace / Boiler: Fuel Type Price Increase */}
+      {!isService && hasFuelType && (
+        <FuelTypeCard
+          businessId={businessId}
+          productId={product.id}
+          productConfig={localProductConfig}
+          onConfigUpdate={setLocalProductConfig}
+        />
+      )}
+
+      {/* Location Adjustments — hidden for mini split and packaged system */}
+      {!isService && showLocationCard && (
       <LocationAdjustments
         businessId={businessId}
         productId={product.id}

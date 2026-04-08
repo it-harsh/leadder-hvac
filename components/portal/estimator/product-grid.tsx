@@ -172,7 +172,7 @@ export function ProductGrid({ products, existingTiers, productConfigs, businessI
           <Button
             variant={configured ? "secondary" : "default"}
             size="sm"
-            className="w-full"
+            className="w-full cursor-pointer"
             disabled={!enabled}
             onClick={(e) => {
               e.stopPropagation()

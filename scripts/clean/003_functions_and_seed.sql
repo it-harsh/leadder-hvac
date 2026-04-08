@@ -18,8 +18,8 @@ DECLARE
   v_product_id      UUID;
   tonnage_labels    TEXT[] := ARRAY['1.5 Ton','2 Ton','2.5 Ton','3 Ton','3.5 Ton','4 Ton','5 Ton'];
   tonnage_values    TEXT[] := ARRAY['1.5','2','2.5','3','3.5','4','5'];
-  mini_split_labels TEXT[] := ARRAY['1.5 Ton','2 Ton','2.5 Ton','3 Ton','3.5 Ton','4 Ton'];
-  mini_split_values TEXT[] := ARRAY['1.5','2','2.5','3','3.5','4'];
+  mini_split_labels TEXT[] := ARRAY['1 Ton','1.5 Ton','2 Ton','2.5 Ton','3 Ton','3.5 Ton','4 Ton','5 Ton'];
+  mini_split_values TEXT[] := ARRAY['1','1.5','2','2.5','3','3.5','4','5'];
   btu_labels        TEXT[] := ARRAY['40k BTU','60k BTU','80k BTU','100k BTU','120k BTU'];
   btu_values        TEXT[] := ARRAY['40000','60000','80000','100000','120000'];
   i INT;
@@ -49,7 +49,7 @@ BEGIN
   VALUES (p_business_id, 'Mini Split', 'mini-split', 'equipment',
     'Ductless mini split heating and cooling system', 'Wind', 3, true)
   RETURNING id INTO v_product_id;
-  FOR i IN 1..6 LOOP
+  FOR i IN 1..8 LOOP
     INSERT INTO public.capacity_options (product_id, label, value, unit, display_order)
     VALUES (v_product_id, mini_split_labels[i], mini_split_values[i], 'ton', i);
   END LOOP;
