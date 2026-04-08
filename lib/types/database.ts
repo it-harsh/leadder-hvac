@@ -95,6 +95,12 @@ export interface BusinessSettings {
   financing_apr: number
   financing_link_text: string | null
   financing_link_url: string | null
+  webhook_enabled: boolean
+  ghl_enabled: boolean
+  ghl_api_key: string | null
+  ghl_location_id: string | null
+  ghl_pipeline_id: string | null
+  ghl_stage_id: string | null
   created_at: string
   updated_at: string
 }

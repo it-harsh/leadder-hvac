@@ -44,10 +44,33 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
   const [financingLinkText, setFinancingLinkText] = useState(settings?.financing_link_text || '')
   const [financingLinkUrl, setFinancingLinkUrl] = useState(settings?.financing_link_url || '')
 
-  // Integrations
+  // Integrations — webhook
+  const [webhookEnabled, setWebhookEnabled] = useState(settings?.webhook_enabled ?? true)
   const [webhookUrl, setWebhookUrl] = useState(settings?.webhook_url || '')
 
+  // Integrations — GHL
+  const [ghlEnabled, setGhlEnabled] = useState(settings?.ghl_enabled ?? false)
+  const [ghlApiKey, setGhlApiKey] = useState(settings?.ghl_api_key || '')
+  const [ghlLocationId, setGhlLocationId] = useState(settings?.ghl_location_id || '')
+  const [ghlPipelineId, setGhlPipelineId] = useState(settings?.ghl_pipeline_id || '')
+  const [ghlStageId, setGhlStageId] = useState(settings?.ghl_stage_id || '')
+
   const handleSave = async () => {
+    if (ghlEnabled) {
+      if (!ghlApiKey.trim()) {
+        toast.error('GHL Private Integration Token is required')
+        return
+      }
+      if (!ghlLocationId.trim()) {
+        toast.error('GHL Location ID is required')
+        return
+      }
+      if (!ghlPipelineId.trim()) {
+        toast.error('GHL Pipeline ID is required')
+        return
+      }
+    }
+
     setSaving(true)
     try {
       const [businessRes, settingsRes] = await Promise.all([
@@ -70,7 +93,13 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
             financing_apr: parseFloat(financingApr) || 0,
             financing_link_text: financingLinkText || null,
             financing_link_url: financingLinkUrl || null,
+            webhook_enabled: webhookEnabled,
             webhook_url: webhookUrl || null,
+            ghl_enabled: ghlEnabled,
+            ghl_api_key: ghlApiKey || null,
+            ghl_location_id: ghlLocationId || null,
+            ghl_pipeline_id: ghlPipelineId || null,
+            ghl_stage_id: ghlStageId || null,
           })
           .eq('business_id', business.id),
       ])
@@ -363,12 +392,22 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
       <TabsContent value="integrations" className="space-y-8">
         <Card className="bg-card border-border">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">CRM Integration</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-foreground">Webhook</CardTitle>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={webhookEnabled}
+                  onChange={e => setWebhookEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Paste a webhook URL to forward every new lead to your CRM automatically.
-              Works with Make.com, Zapier, n8n, HubSpot, Pipedrive, and any service
+              Forward every new lead to Make.com, Zapier, n8n, HubSpot, Pipedrive, or any service
               that accepts a POST request.
             </p>
             <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -386,12 +425,84 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
                 placeholder="https://hook.make.com/xxxx  or  https://hooks.zapier.com/xxxx"
                 value={webhookUrl}
                 onChange={e => setWebhookUrl(e.target.value)}
-                className="bg-input border-border text-foreground font-mono text-sm"
+                disabled={!webhookEnabled}
+                className="bg-input border-border text-foreground font-mono text-sm disabled:opacity-50"
               />
               <p className="text-xs text-muted-foreground">
-                Leave blank to disable. We&apos;ll send a JSON POST with lead name, email,
+                Toggle off to pause without losing your URL. We&apos;ll send a JSON POST with lead name, email,
                 phone, address, product, tier, and quoted price.
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* GHL */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-foreground">GoHighLevel (GHL)</CardTitle>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ghlEnabled}
+                  onChange={e => setGhlEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Push every new lead directly into a GHL pipeline as a contact + opportunity.
+              Generate your token in GHL → Settings → Private Integrations.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="ghlApiKey" className="text-foreground">Private Integration Token</Label>
+              <Input
+                id="ghlApiKey"
+                type="password"
+                placeholder="pit-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={ghlApiKey}
+                onChange={e => setGhlApiKey(e.target.value)}
+                disabled={!ghlEnabled}
+                className="bg-input border-border text-foreground font-mono text-sm disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ghlLocationId" className="text-foreground">Location ID</Label>
+              <Input
+                id="ghlLocationId"
+                placeholder="Found in GHL URL: /location/{id}/..."
+                value={ghlLocationId}
+                onChange={e => setGhlLocationId(e.target.value)}
+                disabled={!ghlEnabled}
+                className="bg-input border-border text-foreground font-mono text-sm disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ghlPipelineId" className="text-foreground">Pipeline ID</Label>
+              <Input
+                id="ghlPipelineId"
+                placeholder="Found in GHL URL: /opportunities/pipeline/{id}"
+                value={ghlPipelineId}
+                onChange={e => setGhlPipelineId(e.target.value)}
+                disabled={!ghlEnabled}
+                className="bg-input border-border text-foreground font-mono text-sm disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ghlStageId" className="text-foreground">
+                Stage ID <span className="text-muted-foreground font-normal">(optional — defaults to first stage)</span>
+              </Label>
+              <Input
+                id="ghlStageId"
+                placeholder="Leave blank to use the first pipeline stage"
+                value={ghlStageId}
+                onChange={e => setGhlStageId(e.target.value)}
+                disabled={!ghlEnabled}
+                className="bg-input border-border text-foreground font-mono text-sm disabled:opacity-50"
+              />
             </div>
           </CardContent>
         </Card>
