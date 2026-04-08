@@ -20,6 +20,10 @@ interface ProductConfig {
   closet_additional_cost: number
   garage_additional_cost: number
   crawl_space_additional_cost: number
+  heads_2_additional_cost: number
+  heads_3_additional_cost: number
+  heads_4plus_additional_cost: number
+  oil_additional_cost: number
 }
 
 interface WidgetData {
@@ -80,7 +84,7 @@ interface WidgetData {
 type Tab = 'hvac' | 'services'
 type SystemType = 'heating_cooling' | 'heating' | 'ac'
 type HeatSource = 'gas' | 'electric' | 'oil' | 'dual_fuel'
-type Step = 'system_type' | 'heat_source' | 'system_config' | 'capacity' | 'location' | 'qty' | 'contact' | 'confirmation'
+type Step = 'system_type' | 'heat_source' | 'system_config' | 'capacity' | 'num_heads' | 'location' | 'qty' | 'contact' | 'confirmation'
 
 type Product = WidgetData['products'][0]
 type PricingTier = WidgetData['pricingTiers'][0]
@@ -444,6 +448,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const [selectedProduct, setSelectedProduct]   = useState<Product | null>(null)
   const [selectedCapacity, setSelectedCapacity] = useState<{ id: string; label: string; value: string; unit: string; sqft: string | null } | null>(null)
   const [selectedLocation, setSelectedLocation] = useState<string>('')
+  const [numHeads, setNumHeads]                 = useState(1)
   const [unitQty, setUnitQty]                   = useState(1)
   const [selectedTier, setSelectedTier]         = useState<PricingTier | null>(null)
   const [fullName, setFullName]   = useState('')
@@ -470,7 +475,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const getTierImage = (productId: string, tier: string) =>
     data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.image_url ?? null
 
-const getLocationCost = (productId: string, location: string): number => {
+  const getLocationCost = (productId: string, location: string): number => {
     const cfg = getProductConfig(productId)
     if (!cfg || !location) return 0
     const map: Record<string, number> = {
@@ -481,11 +486,26 @@ const getLocationCost = (productId: string, location: string): number => {
     return map[location] ?? 0
   }
 
+  const getHeadsCost = (productId: string, heads: number): number => {
+    const cfg = getProductConfig(productId)
+    if (!cfg || heads <= 1) return 0
+    if (heads === 2) return cfg.heads_2_additional_cost ?? 0
+    if (heads === 3) return cfg.heads_3_additional_cost ?? 0
+    return cfg.heads_4plus_additional_cost ?? 0
+  }
+
   const calcAdjustedPrice = (price: number): number => {
     const cfg = selectedProduct ? getProductConfig(selectedProduct.id) : undefined
-    const locationCost = selectedProduct ? getLocationCost(selectedProduct.id, selectedLocation) : 0
+    const isMiniSplit = selectedProduct?.slug === 'mini-split'
+    const isPackaged = selectedProduct?.slug === 'packaged-system'
+    const locationCost = selectedProduct && !isMiniSplit && !isPackaged
+      ? getLocationCost(selectedProduct.id, selectedLocation) : 0
+    const headsCost = selectedProduct && isMiniSplit
+      ? getHeadsCost(selectedProduct.id, numHeads) : 0
+    const oilCost = heatSource === 'oil' && selectedProduct
+      ? (getProductConfig(selectedProduct.id)?.oil_additional_cost ?? 0) : 0
     const discountPct = cfg?.multi_unit_discount_pct ?? 0
-    let base = price + locationCost
+    let base = price + locationCost + headsCost + oilCost
     if (unitQty > 1 && discountPct > 0) base = base * unitQty * (1 - discountPct / 100)
     else if (unitQty > 1) base = base * unitQty
     return Math.round(base)
@@ -541,8 +561,11 @@ const getLocationCost = (productId: string, location: string): number => {
     }
     if (selectedProduct) {
       const isService = selectedProduct.category === 'service'
+      const isMiniSplit = selectedProduct.slug === 'mini-split'
+      const isPackaged = selectedProduct.slug === 'packaged-system'
       if (selectedProduct.capacity_options?.length) steps.push('capacity')
-      if (!isService) steps.push('location')
+      if (isMiniSplit) steps.push('num_heads')
+      if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
       if (!isService) steps.push('qty')
     }
     steps.push('contact', 'confirmation')
@@ -559,7 +582,7 @@ const getLocationCost = (productId: string, location: string): number => {
 
   const resetProductState = () => {
     setSelectedProduct(null); setSelectedCapacity(null)
-    setSelectedLocation(''); setUnitQty(1); setSelectedTier(null); setScopeExpanded(false)
+    setSelectedLocation(''); setNumHeads(1); setUnitQty(1); setSelectedTier(null); setScopeExpanded(false)
   }
 
   const handleTabChange = (tab: Tab) => {
@@ -589,8 +612,11 @@ const getLocationCost = (productId: string, location: string): number => {
         // Build steps explicitly — state hasn't flushed yet
         const steps: Step[] = ['system_type', 'heat_source']
         const isService = product.category === 'service'
+        const isMiniSplit = product.slug === 'mini-split'
+        const isPackaged = product.slug === 'packaged-system'
         if (product.capacity_options?.length) steps.push('capacity')
-        if (!isService) steps.push('location')
+        if (isMiniSplit) steps.push('num_heads')
+        if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
         if (!isService) steps.push('qty')
         steps.push('contact', 'confirmation')
         advanceFrom('heat_source', steps)
@@ -614,8 +640,11 @@ const getLocationCost = (productId: string, location: string): number => {
       steps.push('system_config')
     }
     const isService = product.category === 'service'
+    const isMiniSplit = product.slug === 'mini-split'
+    const isPackaged = product.slug === 'packaged-system'
     if (product.capacity_options?.length) steps.push('capacity')
-    if (!isService) steps.push('location')
+    if (isMiniSplit) steps.push('num_heads')
+    if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
     if (!isService) steps.push('qty')
     steps.push('contact', 'confirmation')
     advanceFrom('system_config', steps)
@@ -641,7 +670,8 @@ const getLocationCost = (productId: string, location: string): number => {
       case 'system_type':  setHeatSource(null); setSystemConfig(null); resetProductState(); break
       case 'heat_source':  setSystemConfig(null); resetProductState(); break
       case 'system_config': setSelectedProduct(null); setSelectedCapacity(null); setSelectedLocation(''); setUnitQty(1); break
-      case 'capacity':     setSelectedCapacity(null); setSelectedLocation(''); setUnitQty(1); break
+      case 'capacity':     setSelectedCapacity(null); setNumHeads(1); setSelectedLocation(''); setUnitQty(1); break
+      case 'num_heads':    setNumHeads(1); setSelectedLocation(''); setUnitQty(1); break
       case 'location':     setSelectedLocation(''); setUnitQty(1); break
       case 'qty':          setUnitQty(1); break
     }
@@ -1116,6 +1146,41 @@ const getLocationCost = (productId: string, location: string): number => {
                         <RadioDot selected={selectedCapacity?.id === cap.id} />
                       </SelectCard>
                     ))}
+                </div>
+              </>
+            )}
+
+            {/* Number of Heads — Mini Split only */}
+            {step === 'num_heads' && selectedProduct && (
+              <>
+                <div className="text-center mb-10">
+                  <h2 className="text-2xl font-bold text-[#1a1a3e]">How many rooms do you want to cool/heat?</h2>
+                  <p className="text-gray-500 mt-1">Each room will have its own indoor unit (head) with independent temperature control</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {[
+                    { heads: 1, label: '1 Room',   desc: 'Single zone mini-split', Icon: Home },
+                    { heads: 2, label: '2 Rooms',  desc: 'Dual zone mini-split',   Icon: Building2 },
+                    { heads: 3, label: '3 Rooms',  desc: 'Triple zone mini-split', Icon: Building2 },
+                    { heads: 4, label: '4+ Rooms', desc: 'Quad zone mini-split',   Icon: Building2 },
+                  ].map(({ heads, label, desc, Icon }) => {
+                    const cost = getHeadsCost(selectedProduct.id, heads)
+                    return (
+                      <SelectCard
+                        key={heads}
+                        selected={numHeads === heads}
+                        onClick={() => { setNumHeads(heads); advanceFrom('num_heads') }}
+                      >
+                        <IconBox Icon={Icon} />
+                        <p className="font-semibold text-[#1a1a3e] text-sm">{label}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                        {cost > 0 && (
+                          <p className="text-xs text-green-600 mt-0.5">+${cost.toLocaleString()}</p>
+                        )}
+                        <RadioDot selected={numHeads === heads} />
+                      </SelectCard>
+                    )
+                  })}
                 </div>
               </>
             )}

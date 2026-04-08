@@ -73,7 +73,7 @@ export async function GET(
     // Fetch ALL per-product configs (need is_enabled to filter visibility + pricing modifiers)
     const { data: allProductConfigs } = await supabaseAdmin
       .from('business_product_configs')
-      .select('product_id, is_enabled, price_range_pct, multi_unit_discount_pct, attic_additional_cost, basement_additional_cost, closet_additional_cost, garage_additional_cost, crawl_space_additional_cost')
+      .select('product_id, is_enabled, price_range_pct, multi_unit_discount_pct, attic_additional_cost, basement_additional_cost, closet_additional_cost, garage_additional_cost, crawl_space_additional_cost, heads_2_additional_cost, heads_3_additional_cost, heads_4plus_additional_cost, oil_additional_cost')
       .eq('business_id', business.id)
 
     // Products are visible unless EXPLICITLY disabled (is_enabled = false)
