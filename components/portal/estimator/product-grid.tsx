@@ -116,8 +116,8 @@ export function ProductGrid({ products, existingTiers, productConfigs, businessI
       <Card 
         key={product.id} 
         className={`bg-card border-border transition-all ${
-          enabled 
-            ? 'hover:border-primary/50 cursor-pointer' 
+          enabled
+            ? 'hover:border-primary/50'
             : 'opacity-60'
         }`}
       >

@@ -82,7 +82,10 @@ export function PricingCell({
           ref={inputRef}
           type="number"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+              setValue(e.target.value)
+              onChange(capacityId, tier, validatePrice(e.target.value))
+            }}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           className="w-full px-2 py-1 text-center text-lg font-semibold border-2 border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
