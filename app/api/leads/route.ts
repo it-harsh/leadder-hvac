@@ -101,13 +101,6 @@ async function fireGHLAsync(businessId: string, lead: Record<string, unknown>) {
 
     const { ghl_api_key, ghl_location_id, ghl_pipeline_id, ghl_stage_id } = settings
 
-    // Fetch business name for the opportunity
-    const { data: business } = await supabaseAdmin
-      .from('businesses')
-      .select('name')
-      .eq('id', businessId)
-      .single()
-
     const headers = {
       'Authorization': `Bearer ${ghl_api_key}`,
       'Version': '2021-07-28',
@@ -171,7 +164,6 @@ async function fireGHLAsync(businessId: string, lead: Record<string, unknown>) {
       contactId: contact.id,
       status: 'open',
       source: 'Leadder',
-      ...(business?.name ? { companyName: business.name } : {}),
       ...(lead.price_good ? { monetaryValue: Number(lead.price_good) } : {}),
       ...(ghl_stage_id ? { pipelineStageId: ghl_stage_id } : {}),
     }
