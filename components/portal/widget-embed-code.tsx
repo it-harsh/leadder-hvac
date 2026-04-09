@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
 import { Check, Copy, ExternalLink, Eye, Info } from 'lucide-react'
 import { toast } from 'sonner'
@@ -36,7 +35,6 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
 
 export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetEmbedCodeProps) {
   const [copiedLink, setCopiedLink] = useState(false)
-  const [showIframePreview, setShowIframePreview] = useState(false)
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(widgetUrl)
@@ -87,7 +85,7 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
             <div className="flex-1 bg-muted rounded-md px-3 py-2 text-sm text-muted-foreground font-mono truncate border border-border">
               {widgetUrl}
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowIframePreview(true)}>
+            <Button variant="outline" size="sm" onClick={() => window.open(`/widget/${businessSlug}/iframe-preview`, '_blank')}>
               <Eye className="w-4 h-4 mr-1.5" />
               Preview
             </Button>
@@ -185,43 +183,6 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
           {businessSlug}
         </code>
       </div>
-
-      {/* ── Iframe Preview Dialog ─────────────────────────────── */}
-      <Dialog open={showIframePreview} onOpenChange={setShowIframePreview}>
-        <DialogContent className="max-w-3xl p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-4">
-            <DialogTitle>Iframe Preview</DialogTitle>
-            <DialogDescription>
-              This is how the widget looks embedded inline on your webpage.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="border-t border-border">
-            {/* Mock browser chrome */}
-            <div className="bg-muted px-4 py-2 flex items-center gap-2 border-b border-border">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                <div className="w-3 h-3 rounded-full bg-green-400" />
-              </div>
-              <div className="flex-1 bg-background rounded px-3 py-1 text-xs text-muted-foreground font-mono truncate">
-                yourwebsite.com/services
-              </div>
-            </div>
-            {/* Page mock with widget inline */}
-            <div className="p-6 bg-white dark:bg-zinc-900">
-              <div className="h-7 bg-muted/60 rounded mb-3 w-1/3" />
-              <div className="h-4 bg-muted/40 rounded mb-6 w-2/3" />
-              <iframe
-                src={widgetUrl}
-                width="100%"
-                height="560"
-                style={{ border: 'none', borderRadius: '8px', display: 'block' }}
-                loading="lazy"
-              />
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
     </div>
   )
