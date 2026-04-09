@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Check, Copy, ExternalLink, Code, LayoutPanelTop } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Check, Copy, ExternalLink, Code, LayoutPanelTop, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface WidgetEmbedCodeProps {
@@ -35,6 +36,8 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
 
 export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetEmbedCodeProps) {
   const [copiedLink, setCopiedLink] = useState(false)
+  const [showIframePreview, setShowIframePreview] = useState(false)
+  const [showModalPreview, setShowModalPreview] = useState(false)
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(widgetUrl)
@@ -65,9 +68,11 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
       <Tabs defaultValue="iframe" className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-muted">
           <TabsTrigger value="iframe" className="data-[state=active]:bg-background">
+            <Code className="w-3.5 h-3.5 mr-1.5" />
             Iframe Embed
           </TabsTrigger>
           <TabsTrigger value="link" className="data-[state=active]:bg-background">
+            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
             Direct Link
           </TabsTrigger>
           <TabsTrigger value="modal" className="data-[state=active]:bg-background">
@@ -80,8 +85,16 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
         <TabsContent value="iframe" className="mt-4">
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-base text-foreground">Iframe Code</CardTitle>
-              <CardDescription>Copy and paste into your website HTML</CardDescription>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle className="text-base text-foreground">Iframe Code</CardTitle>
+                  <CardDescription>Copy and paste into your website HTML</CardDescription>
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowIframePreview(true)}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Preview
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <CopyBlock code={iframeCode} label="Iframe code" />
@@ -126,6 +139,12 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
 
         {/* Popup modal tab */}
         <TabsContent value="modal" className="mt-4 space-y-4">
+          <div className="flex justify-end">
+            <Button variant="outline" size="sm" onClick={() => setShowModalPreview(true)}>
+              <Eye className="w-4 h-4 mr-2" />
+              Preview Modal
+            </Button>
+          </div>
           <Card className="bg-card border-border">
             <CardHeader>
               <CardTitle className="text-base text-foreground">Step 1 — Button Code</CardTitle>
@@ -176,6 +195,74 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
           </code>
         </CardContent>
       </Card>
+
+      {/* Iframe Preview Dialog */}
+      <Dialog open={showIframePreview} onOpenChange={setShowIframePreview}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden">
+          <DialogHeader className="px-6 pt-6 pb-4">
+            <DialogTitle>Iframe Preview</DialogTitle>
+            <DialogDescription>
+              This is how the widget looks embedded inline on your webpage.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="bg-muted/50 border-t border-border">
+            <div className="bg-muted px-4 py-2 flex items-center gap-2 border-b border-border">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-400" />
+                <div className="w-3 h-3 rounded-full bg-yellow-400" />
+                <div className="w-3 h-3 rounded-full bg-green-400" />
+              </div>
+              <div className="flex-1 bg-background rounded px-3 py-1 text-xs text-muted-foreground font-mono truncate">
+                yourwebsite.com/services
+              </div>
+            </div>
+            <div className="p-4 bg-white dark:bg-zinc-900">
+              <div className="h-8 bg-muted/60 rounded mb-4 w-1/3" />
+              <div className="h-4 bg-muted/40 rounded mb-6 w-2/3" />
+              <iframe
+                src={widgetUrl}
+                width="100%"
+                height="580"
+                style={{ border: 'none', borderRadius: '8px', display: 'block' }}
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Popup Modal Preview — full-screen overlay matching the actual embed */}
+      {showModalPreview && (
+        <div
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.55)' }}
+          onClick={() => setShowModalPreview(false)}
+        >
+          <div
+            className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden w-full shadow-2xl"
+            style={{ maxWidth: '680px', maxHeight: '90vh' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
+              <strong className="text-sm text-gray-900 dark:text-white">Get Your Instant Quote</strong>
+              <button
+                onClick={() => setShowModalPreview(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none transition-colors"
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+            </div>
+            <iframe
+              src={widgetUrl}
+              width="100%"
+              height="580"
+              style={{ border: 'none', display: 'block' }}
+              loading="lazy"
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
