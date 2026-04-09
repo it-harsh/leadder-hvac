@@ -37,7 +37,6 @@ function CopyBlock({ code, label }: { code: string; label: string }) {
 export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetEmbedCodeProps) {
   const [copiedLink, setCopiedLink] = useState(false)
   const [showIframePreview, setShowIframePreview] = useState(false)
-  const [showModalPreview, setShowModalPreview] = useState(false)
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(widgetUrl)
@@ -128,7 +127,12 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
               </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowModalPreview(true)}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => window.open(`/widget/${businessSlug}/modal-preview`, '_blank')}
+          >
             <Eye className="w-4 h-4 mr-1.5" />
             Preview
           </Button>
@@ -219,38 +223,6 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
         </DialogContent>
       </Dialog>
 
-      {/* ── Modal Preview — full-screen overlay ──────────────── */}
-      {showModalPreview && (
-        <div
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
-          style={{ background: 'rgba(0,0,0,0.55)' }}
-          onClick={() => setShowModalPreview(false)}
-        >
-          <div
-            className="bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden w-full shadow-2xl"
-            style={{ maxWidth: '680px', maxHeight: '90vh' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-zinc-800">
-              <strong className="text-sm text-gray-900 dark:text-white">Get Your Instant Quote</strong>
-              <button
-                onClick={() => setShowModalPreview(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-2xl leading-none transition-colors"
-                aria-label="Close preview"
-              >
-                ×
-              </button>
-            </div>
-            <iframe
-              src={widgetUrl}
-              width="100%"
-              height="560"
-              style={{ border: 'none', display: 'block' }}
-              loading="lazy"
-            />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
