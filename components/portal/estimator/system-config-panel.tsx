@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, CopyCheck, Upload, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -34,6 +34,8 @@ const tierColors: Record<TierType, string> = {
 
 const TIER_ORDER: TierType[] = ['good', 'better', 'best']
 
+const DEFAULT_SCOPE = `<p><strong>Site Prep &amp; Demo</strong></p><p>Inspect site and prep area.</p><p>Remove existing HVAC unit(s) if applicable.</p><p><strong>System Installation</strong></p><p>Install air handler/furnace and condenser unit.</p><p>Run refrigerant lines, drain lines, and electrical.</p><p>Modify or connect ductwork as needed.</p><p>Install and program thermostat.</p><p><strong>Startup &amp; Testing</strong></p><p>Pressure test, vacuum, and charge system.</p><p>Test heating/cooling, balance airflow.</p><p>Verify thermostat operation.</p><p><strong>Cleanup &amp; Handover</strong></p><p>Clean work area.</p><p>Provide manuals, warranty info, and usage guidance.</p>`
+
 function getConfig(systemConfig: TierSystemConfiguration[], tier: TierType): Partial<TierSystemConfiguration> {
   return systemConfig.find(c => c.tier === tier) ?? {}
 }
@@ -61,19 +63,19 @@ export function SystemConfigPanel({
     good: {
       efficiency_description: getConfig(systemConfig, 'good').efficiency_description ?? '',
       warranty_years: getConfig(systemConfig, 'good').warranty_years?.toString() ?? '',
-      scope_of_work: getConfig(systemConfig, 'good').scope_of_work ?? '',
+      scope_of_work: getConfig(systemConfig, 'good').scope_of_work || DEFAULT_SCOPE,
       image_url: getConfig(systemConfig, 'good').image_url ?? '',
     },
     better: {
       efficiency_description: getConfig(systemConfig, 'better').efficiency_description ?? '',
       warranty_years: getConfig(systemConfig, 'better').warranty_years?.toString() ?? '',
-      scope_of_work: getConfig(systemConfig, 'better').scope_of_work ?? '',
+      scope_of_work: getConfig(systemConfig, 'better').scope_of_work || DEFAULT_SCOPE,
       image_url: getConfig(systemConfig, 'better').image_url ?? '',
     },
     best: {
       efficiency_description: getConfig(systemConfig, 'best').efficiency_description ?? '',
       warranty_years: getConfig(systemConfig, 'best').warranty_years?.toString() ?? '',
-      scope_of_work: getConfig(systemConfig, 'best').scope_of_work ?? '',
+      scope_of_work: getConfig(systemConfig, 'best').scope_of_work || DEFAULT_SCOPE,
       image_url: getConfig(systemConfig, 'best').image_url ?? '',
     },
   })
@@ -291,11 +293,9 @@ export function SystemConfigPanel({
 
               <div className="space-y-2">
                 <Label>Scope of Work</Label>
-                <Textarea
-                  placeholder="Describe what's included in this tier..."
-                  rows={3}
+                <RichTextEditor
                   value={configs[tier].scope_of_work}
-                  onChange={e => updateField(tier, 'scope_of_work', e.target.value)}
+                  onChange={html => updateField(tier, 'scope_of_work', html)}
                 />
               </div>
 
