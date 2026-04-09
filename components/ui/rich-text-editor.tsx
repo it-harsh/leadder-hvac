@@ -48,8 +48,14 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2] },
-        bulletList: {},
-        orderedList: {},
+        bulletList: {
+          keepMarks: true,
+          keepAttributes: true,
+        },
+        orderedList: {
+          keepMarks: true,
+          keepAttributes: true,
+        },
       }),
       Underline,
     ],
