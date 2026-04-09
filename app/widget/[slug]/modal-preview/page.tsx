@@ -52,8 +52,7 @@ export default function ModalPreviewPage() {
             style={{
               background: '#fff',
               borderRadius: '16px',
-              width: '100%',
-              maxWidth: '680px',
+              width: '420px',
               maxHeight: '90vh',
               overflow: 'hidden',
               boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
@@ -84,8 +83,8 @@ export default function ModalPreviewPage() {
             </div>
             <iframe
               src={widgetUrl}
-              width="100%"
-              height="580"
+              width="420"
+              height="620"
               style={{ border: 'none', display: 'block' }}
               loading="lazy"
             />
