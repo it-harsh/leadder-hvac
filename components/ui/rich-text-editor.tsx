@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, List, ListOrdered } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useEffect, useState } from 'react'
 
 interface RichTextEditorProps {
   value: string
@@ -41,6 +42,8 @@ function ToolbarBtn({
 }
 
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
+  const [, forceUpdate] = useState({})
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -52,12 +55,13 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
+    onSelectionUpdate: () => forceUpdate({}),
     editorProps: {
       attributes: {
         class: 'rich-text-content min-h-[160px] px-4 py-3 text-sm text-foreground focus:outline-none',
       },
     },
-  })
+  }, [value])
 
   if (!editor) return null
 
