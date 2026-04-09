@@ -66,6 +66,7 @@ interface WidgetData {
     tier: string
     efficiency_description: string | null
     image_url: string | null
+    scope_of_work: string | null
   }>
   settings: {
     widget_title: string
@@ -475,6 +476,9 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const getTierImage = (productId: string, tier: string) =>
     data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.image_url ?? null
+
+  const getScopeOfWork = (productId: string, tier: string) =>
+    data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.scope_of_work ?? null
 
   const getLocationCost = (productId: string, location: string): number => {
     const cfg = getProductConfig(productId)
@@ -891,7 +895,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                     const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
                     const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
                     const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
-                    const rawScope = tier.scope_of_work ?? ''
+                    const rawScope = (selectedProduct ? getScopeOfWork(selectedProduct.id, tier.tier) : null) ?? tier.scope_of_work ?? ''
                     const isHtmlScope = rawScope.trimStart().startsWith('<')
                     const safeScope = isHtmlScope ? DOMPurify.sanitize(rawScope) : ''
                     const scopeLines = isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)

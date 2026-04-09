@@ -96,7 +96,7 @@ export async function GET(
     // Fetch tier system configurations (efficiency description per tier)
     const { data: systemConfigs } = await supabaseAdmin
       .from('tier_system_configurations')
-      .select('product_id, tier, efficiency_description, image_url')
+      .select('product_id, tier, efficiency_description, image_url, scope_of_work')
       .eq('business_id', business.id)
 
     return NextResponse.json({

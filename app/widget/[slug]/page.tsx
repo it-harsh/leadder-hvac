@@ -53,6 +53,7 @@ interface WidgetData {
     tier: string
     efficiency_description: string | null
     image_url: string | null
+    scope_of_work: string | null
   }>
   settings: {
     widget_title: string
