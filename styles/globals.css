@@ -123,3 +123,30 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ── Tiptap rich text editor content styles ── */
+.rich-text-content h1 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0 0.25rem; }
+.rich-text-content h2 { font-size: 1.1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+.rich-text-content p { margin: 0.15rem 0; }
+.rich-text-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-text-content ol { list-style-type: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
+.rich-text-content li { margin: 0.1rem 0; }
+.rich-text-content strong { font-weight: 600; }
+.rich-text-content em { font-style: italic; }
+.rich-text-content u { text-decoration: underline; }
+.rich-text-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: oklch(var(--muted-foreground));
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── Widget scope HTML rendering ── */
+.widget-scope-html p { margin: 0.15rem 0; line-height: 1.5; }
+.widget-scope-html h1 { font-size: 1rem; font-weight: 700; margin: 0.5rem 0 0.2rem; }
+.widget-scope-html h2 { font-size: 0.9rem; font-weight: 700; margin: 0.5rem 0 0.2rem; }
+.widget-scope-html strong { font-weight: 700; }
+.widget-scope-html em { font-style: italic; }
+.widget-scope-html ul { list-style-type: disc; padding-left: 1.1rem; margin: 0.2rem 0; }
+.widget-scope-html ol { list-style-type: decimal; padding-left: 1.1rem; margin: 0.2rem 0; }

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RichTextEditor } from '@/components/ui/rich-text-editor'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Save, Trash2 } from 'lucide-react'
@@ -38,21 +39,7 @@ interface TierFormData {
   best: { price: string; warranty: string; features: string; scope: string }
 }
 
-const DEFAULT_SCOPE = `Site Prep & Demo
-Inspect site and prep area.
-Remove existing HVAC unit(s) if applicable.
-System Installation
-Install air handler/furnace and condenser unit.
-Run refrigerant lines, drain lines, and electrical.
-Modify or connect ductwork as needed.
-Install and program thermostat.
-Startup & Testing
-Pressure test, vacuum, and charge system.
-Test heating/cooling, balance airflow.
-Verify thermostat operation.
-Cleanup & Handover
-Clean work area.
-Provide manuals, warranty info, and usage guidance.`
+const DEFAULT_SCOPE = `<p><strong>Site Prep &amp; Demo</strong></p><p>Inspect site and prep area.</p><p>Remove existing HVAC unit(s) if applicable.</p><p><strong>System Installation</strong></p><p>Install air handler/furnace and condenser unit.</p><p>Run refrigerant lines, drain lines, and electrical.</p><p>Modify or connect ductwork as needed.</p><p>Install and program thermostat.</p><p><strong>Startup &amp; Testing</strong></p><p>Pressure test, vacuum, and charge system.</p><p>Test heating/cooling, balance airflow.</p><p>Verify thermostat operation.</p><p><strong>Cleanup &amp; Handover</strong></p><p>Clean work area.</p><p>Provide manuals, warranty info, and usage guidance.</p>`
 
 const defaultTierData = {
   good: {
@@ -481,16 +468,10 @@ export function ProductPricingModal({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor={`${tier}-scope`} className="text-foreground">
-                        Scope of Work
-                      </Label>
-                      <Textarea
-                        id={`${tier}-scope`}
-                        placeholder="Describe what's included in this tier..."
+                      <Label className="text-foreground">Scope of Work</Label>
+                      <RichTextEditor
                         value={formData[tier].scope}
-                        onChange={(e) => handleInputChange(tier, 'scope', e.target.value)}
-                        rows={3}
-                        className="bg-input border-border text-foreground resize-none"
+                        onChange={(html) => handleInputChange(tier, 'scope', html)}
                       />
                     </div>
                   </CardContent>

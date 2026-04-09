@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import DOMPurify from 'dompurify'
 import { getSqftRange } from '@/lib/utils/hvac'
 import {
   Check, ArrowLeft, Loader2,
@@ -890,7 +891,10 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                     const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
                     const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
                     const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
-                    const scopeLines = (tier.scope_of_work ?? '').split('\n').map(l => l.trim()).filter(Boolean)
+                    const rawScope = tier.scope_of_work ?? ''
+                    const isHtmlScope = rawScope.trimStart().startsWith('<')
+                    const safeScope = isHtmlScope ? DOMPurify.sanitize(rawScope) : ''
+                    const scopeLines = isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)
                     const PREVIEW_LINES = 3
                     const visibleLines = scopeExpanded ? scopeLines : scopeLines.slice(0, PREVIEW_LINES)
                     const hasMoreScope = scopeLines.length > PREVIEW_LINES
@@ -934,25 +938,35 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                               <p className="text-sm text-gray-600 leading-relaxed">{eff}</p>
                             </div>
                           )}
-                          {scopeLines.length > 0 && (
+                          {(isHtmlScope ? safeScope.length > 0 : scopeLines.length > 0) && (
                             <div>
                               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">What&apos;s Included</p>
-                              <ul className="space-y-1.5">
-                                {visibleLines.map((line, i) => (
-                                  <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
-                                    {line}
-                                  </li>
-                                ))}
-                              </ul>
-                              {hasMoreScope && (
-                                <button
-                                  type="button"
-                                  onClick={() => setScopeExpanded(v => !v)}
-                                  className="text-xs text-indigo-600 hover:text-indigo-700 mt-2 font-medium"
-                                >
-                                  {scopeExpanded ? 'See Less' : `See More (${scopeLines.length - PREVIEW_LINES} more)`}
-                                </button>
+                              {isHtmlScope ? (
+                                <div
+                                  className="text-sm text-gray-600 widget-scope-html"
+                                  // Content is admin-entered and sanitized with DOMPurify
+                                  dangerouslySetInnerHTML={{ __html: safeScope }}
+                                />
+                              ) : (
+                                <>
+                                  <ul className="space-y-1.5">
+                                    {visibleLines.map((line, i) => (
+                                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                                        {line}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  {hasMoreScope && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setScopeExpanded(v => !v)}
+                                      className="text-xs text-indigo-600 hover:text-indigo-700 mt-2 font-medium"
+                                    >
+                                      {scopeExpanded ? 'See Less' : `See More (${scopeLines.length - PREVIEW_LINES} more)`}
+                                    </button>
+                                  )}
+                                </>
                               )}
                             </div>
                           )}
