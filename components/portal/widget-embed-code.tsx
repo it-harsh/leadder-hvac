@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
-import { Check, Copy, ExternalLink, Code, LayoutPanelTop, Eye } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Check, Copy, ExternalLink, Eye, Info } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface WidgetEmbedCodeProps {
@@ -42,7 +42,7 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(widgetUrl)
     setCopiedLink(true)
-    toast.success('Widget URL copied to clipboard')
+    toast.success('URL copied to clipboard')
     setTimeout(() => setCopiedLink(false), 2000)
   }
 
@@ -64,139 +64,125 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
 </div>`
 
   return (
-    <div className="space-y-8 max-w-2xl">
-      <Tabs defaultValue="iframe" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-muted">
-          <TabsTrigger value="iframe" className="data-[state=active]:bg-background">
-            <Code className="w-3.5 h-3.5 mr-1.5" />
-            Iframe Embed
-          </TabsTrigger>
-          <TabsTrigger value="link" className="data-[state=active]:bg-background">
-            <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
-            Direct Link
-          </TabsTrigger>
-          <TabsTrigger value="modal" className="data-[state=active]:bg-background">
-            <LayoutPanelTop className="w-3.5 h-3.5 mr-1.5" />
-            Popup Modal
-          </TabsTrigger>
-        </TabsList>
+    <div className="space-y-10 max-w-3xl">
 
-        {/* Iframe tab */}
-        <TabsContent value="iframe" className="mt-4">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle className="text-base text-foreground">Iframe Code</CardTitle>
-                  <CardDescription>Copy and paste into your website HTML</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={() => setShowIframePreview(true)}>
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <CopyBlock code={iframeCode} label="Iframe code" />
-              <div className="text-sm text-muted-foreground">
-                <p className="font-medium text-foreground mb-2">Instructions:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Copy the iframe code above</li>
-                  <li>Paste it into your website&apos;s HTML</li>
-                  <li>Adjust the height if needed</li>
-                  <li>Save and publish your changes</li>
-                </ol>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+      {/* ── Section 1: Iframe Embed ────────────────────────── */}
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
+              Instant Estimator Embed Code
+              <Info className="w-4 h-4 text-muted-foreground" />
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Copy and paste this code into your website to embed the unified quote form with both HVAC and service options.
+            </p>
+          </div>
+        </div>
 
-        {/* Direct link tab */}
-        <TabsContent value="link" className="mt-4">
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base text-foreground">Direct Link</CardTitle>
-              <CardDescription>Share directly with customers or use in marketing</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="relative">
-                <pre className="p-4 bg-muted rounded-lg text-sm text-foreground overflow-x-auto">
-                  <code>{widgetUrl}</code>
-                </pre>
-                <Button size="sm" variant="secondary" className="absolute top-2 right-2" onClick={handleCopyLink}>
-                  {copiedLink ? <><Check className="w-4 h-4 mr-1" />Copied</> : <><Copy className="w-4 h-4 mr-1" />Copy</>}
-                </Button>
-              </div>
-              <Button asChild className="w-full" variant="outline">
-                <a href={widgetUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Open Widget Preview
-                </a>
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Popup modal tab */}
-        <TabsContent value="modal" className="mt-4 space-y-4">
-          <div className="flex justify-end">
-            <Button variant="outline" size="sm" onClick={() => setShowModalPreview(true)}>
-              <Eye className="w-4 h-4 mr-2" />
-              Preview Modal
+        {/* Preview URL row */}
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-foreground">Preview URL</p>
+          <div className="flex gap-2 items-center">
+            <div className="flex-1 bg-muted rounded-md px-3 py-2 text-sm text-muted-foreground font-mono truncate border border-border">
+              {widgetUrl}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setShowIframePreview(true)}>
+              <Eye className="w-4 h-4 mr-1.5" />
+              Preview
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleCopyLink}>
+              {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </Button>
           </div>
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base text-foreground">Step 1 — Button Code</CardTitle>
-              <CardDescription>
-                Place this where you want the button to appear on your page
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CopyBlock code={buttonCode} label="Button code" />
-              <p className="text-xs text-muted-foreground mt-3">
-                You can change the button text and style to match your website.
+        </div>
+
+        {/* Embed Code */}
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium text-foreground">Embed Code</p>
+          <CopyBlock code={iframeCode} label="Embed code" />
+        </div>
+
+        {/* Helper text */}
+        <div className="space-y-1 text-sm text-muted-foreground">
+          <p>Add this code to any page on your website where you want the quote form to appear.</p>
+          <p>This form includes all your enabled HVAC products and services.</p>
+          <p>You can adjust the width and height values to better fit your website&apos;s layout.</p>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* ── Section 2: Modal / Popup Embed ───────────────────── */}
+      <div className="space-y-5">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start gap-2">
+            <Info className="w-4 h-4 text-muted-foreground mt-1 shrink-0" />
+            <div>
+              <h3 className="text-xl font-bold text-foreground">Modal/Popup Embed</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Add a button that opens the quote form in a modal overlay —{' '}
+                <span className="text-muted-foreground">perfect for headers</span>
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowModalPreview(true)}>
+            <Eye className="w-4 h-4 mr-1.5" />
+            Preview
+          </Button>
+        </div>
 
-          <Card className="bg-card border-border">
-            <CardHeader>
-              <CardTitle className="text-base text-foreground">Step 2 — Modal Code</CardTitle>
-              <CardDescription>
-                Place this once, just before the <code className="bg-muted px-1 rounded">&lt;/body&gt;</code> tag
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <CopyBlock code={modalCode} label="Modal code" />
-              <div className="text-sm text-muted-foreground mt-3">
-                <p className="font-medium text-foreground mb-1">How it works:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>Button click opens the quote form in a centered overlay</li>
-                  <li>Click outside the modal or × to close</li>
-                  <li>Works on any website — no extra tools needed</li>
-                </ul>
+        {/* Simple / Advanced tabs */}
+        <Tabs defaultValue="simple" className="w-full">
+          <TabsList className="bg-muted">
+            <TabsTrigger value="simple" className="data-[state=active]:bg-background">Simple Setup</TabsTrigger>
+            <TabsTrigger value="advanced" className="data-[state=active]:bg-background">Advanced</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="simple" className="mt-4 space-y-3">
+            <p className="text-sm text-muted-foreground">Copy &amp; paste this code where you want the button:</p>
+            <CopyBlock code={buttonCode} label="Button code" />
+            <p className="text-xs text-muted-foreground">
+              You can change the button text and style to match your website.
+            </p>
+          </TabsContent>
+
+          <TabsContent value="advanced" className="mt-4 space-y-4">
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Step 1 — Button</p>
+                <p className="text-sm text-muted-foreground mb-2">Place this where you want the button to appear:</p>
+                <CopyBlock code={buttonCode} label="Button code" />
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <div>
+                <p className="text-sm font-medium text-foreground mb-1">Step 2 — Modal</p>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Place this once, just before the <code className="bg-muted px-1 rounded text-xs">&lt;/body&gt;</code> tag:
+                </p>
+                <CopyBlock code={modalCode} label="Modal code" />
+              </div>
+              <ul className="list-disc list-inside space-y-1 text-xs text-muted-foreground">
+                <li>Button click opens the quote form in a centered overlay</li>
+                <li>Click outside the modal or × to close</li>
+                <li>Works on any website — no extra tools needed</li>
+              </ul>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-base text-foreground flex items-center gap-2">
-            <Code className="w-5 h-5 text-primary" />
-            Your Widget ID
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <code className="px-3 py-2 bg-muted rounded text-primary font-mono">
-            {businessSlug}
-          </code>
-        </CardContent>
-      </Card>
+      {/* ── Widget ID ─────────────────────────────────────────── */}
+      <Separator />
+      <div className="space-y-1.5">
+        <p className="text-sm font-medium text-foreground">Your Widget ID</p>
+        <code className="px-3 py-2 bg-muted rounded text-primary font-mono text-sm">
+          {businessSlug}
+        </code>
+      </div>
 
-      {/* Iframe Preview Dialog */}
+      {/* ── Iframe Preview Dialog ─────────────────────────────── */}
       <Dialog open={showIframePreview} onOpenChange={setShowIframePreview}>
         <DialogContent className="max-w-3xl p-0 overflow-hidden">
           <DialogHeader className="px-6 pt-6 pb-4">
@@ -205,7 +191,8 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
               This is how the widget looks embedded inline on your webpage.
             </DialogDescription>
           </DialogHeader>
-          <div className="bg-muted/50 border-t border-border">
+          <div className="border-t border-border">
+            {/* Mock browser chrome */}
             <div className="bg-muted px-4 py-2 flex items-center gap-2 border-b border-border">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-400" />
@@ -216,13 +203,14 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
                 yourwebsite.com/services
               </div>
             </div>
-            <div className="p-4 bg-white dark:bg-zinc-900">
-              <div className="h-8 bg-muted/60 rounded mb-4 w-1/3" />
+            {/* Page mock with widget inline */}
+            <div className="p-6 bg-white dark:bg-zinc-900">
+              <div className="h-7 bg-muted/60 rounded mb-3 w-1/3" />
               <div className="h-4 bg-muted/40 rounded mb-6 w-2/3" />
               <iframe
                 src={widgetUrl}
                 width="100%"
-                height="580"
+                height="560"
                 style={{ border: 'none', borderRadius: '8px', display: 'block' }}
                 loading="lazy"
               />
@@ -231,7 +219,7 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
         </DialogContent>
       </Dialog>
 
-      {/* Popup Modal Preview — full-screen overlay matching the actual embed */}
+      {/* ── Modal Preview — full-screen overlay ──────────────── */}
       {showModalPreview && (
         <div
           className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
@@ -256,7 +244,7 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
             <iframe
               src={widgetUrl}
               width="100%"
-              height="580"
+              height="560"
               style={{ border: 'none', display: 'block' }}
               loading="lazy"
             />
