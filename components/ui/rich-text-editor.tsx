@@ -42,7 +42,14 @@ function ToolbarBtn({
 
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2] },
+        bulletList: {},
+        orderedList: {},
+      }),
+      Underline,
+    ],
     content: value,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
