@@ -38,24 +38,40 @@ interface TierFormData {
   best: { price: string; warranty: string; features: string; scope: string }
 }
 
+const DEFAULT_SCOPE = `Site Prep & Demo
+Inspect site and prep area.
+Remove existing HVAC unit(s) if applicable.
+System Installation
+Install air handler/furnace and condenser unit.
+Run refrigerant lines, drain lines, and electrical.
+Modify or connect ductwork as needed.
+Install and program thermostat.
+Startup & Testing
+Pressure test, vacuum, and charge system.
+Test heating/cooling, balance airflow.
+Verify thermostat operation.
+Cleanup & Handover
+Clean work area.
+Provide manuals, warranty info, and usage guidance.`
+
 const defaultTierData = {
-  good: { 
-    price: '', 
-    warranty: '5', 
-    features: 'Standard efficiency equipment\nBasic installation\n1-year labor warranty\nManufacturer parts warranty', 
-    scope: 'Complete system installation including standard equipment, basic ductwork modifications if needed, electrical connections, condensate drain, thermostat wiring, and startup testing.' 
+  good: {
+    price: '',
+    warranty: '5',
+    features: 'Basic efficiency that meets minimum requirements. Most affordable upfront cost but higher utility bills over time.',
+    scope: DEFAULT_SCOPE,
   },
-  better: { 
-    price: '', 
-    warranty: '10', 
-    features: 'High-efficiency equipment (16+ SEER)\nPremium installation\n2-year labor warranty\nExtended parts warranty\nProgrammable thermostat included', 
-    scope: 'Premium system installation with high-efficiency equipment, thorough ductwork inspection and sealing, upgraded electrical connections, condensate pump if needed, smart thermostat installation, complete system balancing, and extended testing.' 
+  better: {
+    price: '',
+    warranty: '10',
+    features: 'Balanced efficiency with moderate energy savings. Good compromise between upfront cost and long-term savings.',
+    scope: DEFAULT_SCOPE,
   },
-  best: { 
-    price: '', 
-    warranty: '12', 
-    features: 'Top-tier efficiency equipment (18+ SEER)\nWhite-glove installation\n5-year labor warranty\nLifetime parts warranty\nSmart thermostat with WiFi\nAnnual maintenance included (1st year)', 
-    scope: 'Elite system installation featuring top-of-the-line equipment, complete ductwork optimization, premium electrical upgrades, advanced air quality accessories, smart home integration, comprehensive system commissioning, first year of preventive maintenance, and priority service scheduling.' 
+  best: {
+    price: '',
+    warranty: '12',
+    features: 'Maximum efficiency with significant energy savings. Higher upfront cost but lowest utility bills and better comfort.',
+    scope: DEFAULT_SCOPE,
   },
 }
 
