@@ -46,7 +46,7 @@ export function WidgetEmbedCode({ widgetUrl, iframeCode, businessSlug }: WidgetE
   }
 
   const buttonCode = `<button onclick="document.getElementById('leadder-modal').style.display='flex'" style="background:#4f46e5;color:#fff;padding:14px 28px;border:none;border-radius:50px;font-size:15px;font-weight:600;cursor:pointer;">
-  Get Your Instant Quote →
+  Get Your Instant Quote &rarr;
 </button>`
 
   const modalCode = `<!-- Place this before </body> — only once per page -->
