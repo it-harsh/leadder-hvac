@@ -44,7 +44,7 @@ export function PortalSidebar({ business }: PortalSidebarProps) {
   return (
     <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4 flex justify-center">
         <Link href="/portal">
           <Image src="/leadder_logo.svg" alt="Leadder" width={112} height={32} className="h-8 w-auto" />
         </Link>
