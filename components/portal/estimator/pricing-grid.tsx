@@ -179,7 +179,7 @@ export function PricingGridComponent({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Top bar */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <Button variant="ghost" onClick={() => router.push('/portal/estimator')}>
@@ -262,9 +262,9 @@ export function PricingGridComponent({
       <Card className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="bg-muted">
               <tr className="border-b border-border">
-                <th className="p-4 text-left font-semibold text-foreground bg-muted/50">
+                <th className="p-4 text-left font-semibold text-foreground">
                   Tier
                 </th>
                 {localCapacities.map((capacity) => {
@@ -272,7 +272,7 @@ export function PricingGridComponent({
                   return (
                     <th
                       key={capacity.id}
-                      className={`p-4 text-center font-semibold text-foreground bg-muted/50 min-w-[150px] ${!capacity.is_enabled ? 'opacity-50' : ''}`}
+                      className={`p-4 text-center font-semibold text-foreground min-w-[150px] ${!capacity.is_enabled ? 'opacity-50' : ''}`}
                     >
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex items-center gap-2">
