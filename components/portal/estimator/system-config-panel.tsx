@@ -14,9 +14,21 @@ import { TierSystemConfiguration, CapacityOption, PricingTier } from '@/lib/type
 
 const supabase = createClient()
 
+const DEFAULT_PRODUCT_IMAGES: Record<string, string> = {
+  'split-system-gas-furnace':  '/system-images/split.png',
+  'split-system-cooling-only': '/system-images/split.png',
+  'mini-split':                '/system-images/mini-split.png',
+  'packaged-system':           '/system-images/packaged-system.png',
+  'furnace':                   '/system-images/furnace.png',
+  'boiler':                    '/system-images/boiler.png',
+  'dual-fuel-system':          '/system-images/heat-pump.png',
+  'split-system-heat-pump':    '/system-images/heat-pump.png',
+}
+
 interface SystemConfigPanelProps {
   businessId: string
   productId: string
+  productSlug: string
   systemConfig: TierSystemConfiguration[]
   capacities: CapacityOption[]
   tiers: PricingTier[]
@@ -49,6 +61,7 @@ function getConfig(systemConfig: TierSystemConfiguration[], tier: TierType): Par
 export function SystemConfigPanel({
   businessId,
   productId,
+  productSlug,
   systemConfig,
   capacities,
   tiers,
@@ -323,55 +336,50 @@ export function SystemConfigPanel({
               {/* Tier Image */}
               <div className="space-y-3">
                 <Label>{tier.charAt(0).toUpperCase() + tier.slice(1)} Tier Image</Label>
-                {configs[tier].image_url ? (
-                  <div className="space-y-3">
-                    <div className="rounded-lg border border-border bg-muted/30 overflow-hidden">
-                      <img
-                        src={configs[tier].image_url}
-                        alt={`${tier} tier`}
-                        className="w-full h-64 object-contain p-4"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs text-muted-foreground">Shown on the quote results screen</p>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => fileInputRefs.current[tier]?.click()}
-                          disabled={uploadingTier === tier}
-                        >
-                          {uploadingTier === tier ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Upload className="w-4 h-4 mr-1.5" />}
-                          Replace
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => removeImage(tier)}
-                        >
-                          <X className="w-4 h-4 mr-1.5" />
-                          Remove
-                        </Button>
+                {(() => {
+                  const customUrl = configs[tier].image_url
+                  const defaultUrl = DEFAULT_PRODUCT_IMAGES[productSlug] ?? null
+                  const displayUrl = customUrl || defaultUrl
+                  if (displayUrl) return (
+                    <div className="space-y-3">
+                      <div className="rounded-lg border border-border bg-muted/30 overflow-hidden relative">
+                        <img src={displayUrl} alt={`${tier} tier`} className="w-full h-64 object-contain p-4" />
+                        {!customUrl && (
+                          <span className="absolute top-2 right-2 text-[10px] bg-muted text-muted-foreground px-2 py-0.5 rounded-full border border-border">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground">Shown on the quote results screen</p>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => fileInputRefs.current[tier]?.click()} disabled={uploadingTier === tier}>
+                            {uploadingTier === tier ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Upload className="w-4 h-4 mr-1.5" />}
+                            {customUrl ? 'Replace' : 'Upload Custom'}
+                          </Button>
+                          {customUrl && (
+                            <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => removeImage(tier)}>
+                              <X className="w-4 h-4 mr-1.5" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div
-                    className="flex flex-col items-center gap-3 p-8 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors"
-                    onClick={() => fileInputRefs.current[tier]?.click()}
-                  >
-                    {uploadingTier === tier ? (
-                      <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" />
-                    ) : (
-                      <Upload className="w-8 h-8 text-muted-foreground" />
-                    )}
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-foreground">Upload an image</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Shown on the quote results screen for this tier</p>
+                  )
+                  return (
+                    <div
+                      className="flex flex-col items-center gap-3 p-8 rounded-lg border-2 border-dashed border-border cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors"
+                      onClick={() => fileInputRefs.current[tier]?.click()}
+                    >
+                      {uploadingTier === tier ? <Loader2 className="w-8 h-8 text-muted-foreground animate-spin" /> : <Upload className="w-8 h-8 text-muted-foreground" />}
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-foreground">Upload an image</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Shown on the quote results screen for this tier</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
                 <input
                   ref={el => { fileInputRefs.current[tier] = el }}
                   type="file"

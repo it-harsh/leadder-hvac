@@ -343,6 +343,7 @@ export function PricingGridComponent({
       <SystemConfigPanel
         businessId={businessId}
         productId={product.id}
+        productSlug={product.slug}
         systemConfig={localSystemConfig}
         capacities={localCapacities}
         tiers={localTiers}
