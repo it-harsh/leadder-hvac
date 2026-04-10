@@ -259,20 +259,21 @@ export function PricingGridComponent({
 
       {/* Pricing Grid - Hide for services */}
       {!isService && (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden p-0">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-muted">
               <tr className="border-b border-border">
-                <th className="p-4 text-left font-semibold text-foreground">
+                <th className="p-4 text-left font-semibold text-foreground rounded-tl-lg">
                   Tier
                 </th>
-                {localCapacities.map((capacity) => {
+                {localCapacities.map((capacity, index) => {
                   const toggling = togglingCapacity === capacity.id
+                  const isLast = index === localCapacities.length - 1
                   return (
                     <th
                       key={capacity.id}
-                      className={`p-4 text-center font-semibold text-foreground min-w-[150px] ${!capacity.is_enabled ? 'opacity-50' : ''}`}
+                      className={`p-4 text-center font-semibold text-foreground min-w-[150px] ${!capacity.is_enabled ? 'opacity-50' : ''} ${isLast ? 'rounded-tr-lg' : ''}`}
                     >
                       <div className="flex flex-col items-center gap-2">
                         <div className="flex items-center gap-2">
@@ -307,18 +308,20 @@ export function PricingGridComponent({
               </tr>
             </thead>
             <tbody>
-              {tierOrder.map((tier) => (
+              {tierOrder.map((tier, tierIndex) => (
                 <tr key={tier} className="border-b border-border last:border-0">
-                  <td className={`p-4 font-semibold ${tierColors[tier]}`}>
+                  <td className={`p-4 font-semibold ${tierColors[tier]} ${tierIndex === tierOrder.length - 1 ? 'rounded-bl-lg' : ''}`}>
                     {tierLabels[tier]}
                   </td>
-                  {localCapacities.map((capacity) => {
+                  {localCapacities.map((capacity, capIndex) => {
                     const price = getPrice(capacity.id, tier)
                     const isDisabled = !capacity.is_enabled
+                    const isLastRow = tierIndex === tierOrder.length - 1
+                    const isLastCol = capIndex === localCapacities.length - 1
                     return (
                       <td
                         key={`${tier}|${capacity.id}`}
-                        className={`p-2 ${isDisabled ? 'opacity-50' : ''}`}
+                        className={`p-2 ${isDisabled ? 'opacity-50' : ''} ${isLastRow && isLastCol ? 'rounded-br-lg' : ''}`}
                       >
                         <PricingCell
                           price={price}
