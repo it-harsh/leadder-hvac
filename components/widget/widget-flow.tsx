@@ -473,8 +473,23 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const getEfficiencyDescription = (productId: string, tier: string) =>
     data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.efficiency_description ?? null
 
-  const getTierImage = (productId: string, tier: string) =>
-    data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.image_url ?? null
+  const DEFAULT_PRODUCT_IMAGES: Record<string, string> = {
+    'split-system-gas-furnace':   '/system-images/split.png',
+    'split-system-cooling-only':  '/system-images/split.png',
+    'mini-split':                 '/system-images/mini-split.png',
+    'packaged-system':            '/system-images/packaged-system.png',
+    'furnace':                    '/system-images/furnace.png',
+    'boiler':                     '/system-images/boiler.png',
+    'dual-fuel-system':           '/system-images/heat-pump.png',
+    'split-system-heat-pump':     '/system-images/heat-pump.png',
+  }
+
+  const getTierImage = (productId: string, tier: string) => {
+    const uploaded = data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.image_url
+    if (uploaded) return uploaded
+    const slug = data.products.find(p => p.id === productId)?.slug ?? ''
+    return DEFAULT_PRODUCT_IMAGES[slug] ?? null
+  }
 
   const getScopeOfWork = (productId: string, tier: string) =>
     data.systemConfigs?.find(c => c.product_id === productId && c.tier === tier)?.scope_of_work ?? null
