@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, List, ListOrdered } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface RichTextEditorProps {
   value: string
@@ -44,6 +44,7 @@ function ToolbarBtn({
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
   // Track whether the last content change came from the user typing (not from a prop update)
   const isInternalUpdate = useRef(false)
+  const [, forceRender] = useState(0)
 
   const editor = useEditor({
     extensions: [
@@ -59,6 +60,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
       isInternalUpdate.current = true
       onChange(editor.getHTML())
     },
+    onSelectionUpdate: () => forceRender(n => n + 1),
     editorProps: {
       attributes: {
         class: 'rich-text-content min-h-[160px] px-4 py-3 text-sm text-foreground focus:outline-none',
