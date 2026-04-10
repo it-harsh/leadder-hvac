@@ -1082,35 +1082,37 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
         {inStepFlow && (
           <>
             {/* Back + Progress */}
-            <div className="mb-8">
-              {showBack && (
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Back
-                </button>
-              )}
-              <div className="flex items-center gap-1.5">
-                {activeSteps.filter(s => s !== 'confirmation').map((s, i) => {
-                  const isCurrent = i === currentStepIndex
-                  const isDone = i < currentStepIndex
-                  return (
-                    <div
-                      key={s}
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        isDone ? 'bg-indigo-600 w-2' :
-                        isCurrent ? 'bg-indigo-600 w-6' :
-                        'bg-gray-300 w-2'
-                      }`}
-                    />
-                  )
-                })}
-                <span className="text-xs text-gray-400 ml-2">{currentStepIndex + 1} of {activeSteps.filter(s => s !== 'confirmation').length}</span>
+            <div className="mb-10">
+              <div className="flex items-center justify-between mb-5">
+                {showBack ? (
+                  <button
+                    onClick={handleBack}
+                    className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                    Back
+                  </button>
+                ) : <div />}
+                <div className="flex items-center gap-1.5">
+                  {activeSteps.filter(s => s !== 'confirmation').map((s, i) => {
+                    const isCurrent = i === currentStepIndex
+                    const isDone = i < currentStepIndex
+                    return (
+                      <div
+                        key={s}
+                        className={`h-2 rounded-full transition-all duration-300 ${
+                          isDone ? 'bg-indigo-600 w-2' :
+                          isCurrent ? 'bg-indigo-600 w-6' :
+                          'bg-gray-300 w-2'
+                        }`}
+                      />
+                    )
+                  })}
+                  <span className="text-xs text-gray-400 ml-2">{currentStepIndex + 1} of {activeSteps.filter(s => s !== 'confirmation').length}</span>
+                </div>
               </div>
               {selectionSummary.length > 0 && (
-                <div className="flex items-center gap-2 mt-3 px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100">
                   <Activity className="w-4 h-4 text-indigo-500 flex-shrink-0" />
                   <p className="text-sm text-gray-600">
                     <span className="font-medium">You selected:</span>{' '}
