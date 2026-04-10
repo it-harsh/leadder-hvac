@@ -13,12 +13,25 @@ const supabaseAdmin = createClient(
   }
 )
 
-function generateSlug(name: string): string {
+function baseSlug(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
-    .substring(0, 50) + '-' + Math.random().toString(36).substring(2, 8)
+    .substring(0, 50)
+}
+
+async function findUniqueSlug(name: string): Promise<string> {
+  const base = baseSlug(name)
+  const { data } = await supabaseAdmin
+    .from('businesses')
+    .select('slug')
+    .like('slug', `${base}%`)
+  const taken = new Set((data ?? []).map((r: { slug: string }) => r.slug))
+  if (!taken.has(base)) return base
+  let i = 2
+  while (taken.has(`${base}-${i}`)) i++
+  return `${base}-${i}`
 }
 
 async function sleep(ms: number) {
@@ -36,7 +49,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const slug = generateSlug(businessName)
+    const slug = await findUniqueSlug(businessName)
 
     // Wait for user to be fully committed to auth.users (Supabase replication lag)
     // Poll the admin API instead of blindly retrying the insert
