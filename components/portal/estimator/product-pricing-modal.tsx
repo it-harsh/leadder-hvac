@@ -39,6 +39,8 @@ interface TierFormData {
   best: { price: string; warranty: string; features: string; scope: string }
 }
 
+const DEFAULT_SERVICE_DESCRIPTION = 'Professional A/C tune-up service including system inspection, cleaning, and maintenance'
+
 const DEFAULT_SCOPE = `<p><strong>Site Prep &amp; Demo</strong></p><p>Inspect site and prep area.</p><p>Remove existing HVAC unit(s) if applicable.</p><p><strong>System Installation</strong></p><p>Install air handler/furnace and condenser unit.</p><p>Run refrigerant lines, drain lines, and electrical.</p><p>Modify or connect ductwork as needed.</p><p>Install and program thermostat.</p><p><strong>Startup &amp; Testing</strong></p><p>Pressure test, vacuum, and charge system.</p><p>Test heating/cooling, balance airflow.</p><p>Verify thermostat operation.</p><p><strong>Cleanup &amp; Handover</strong></p><p>Clean work area.</p><p>Provide manuals, warranty info, and usage guidance.</p>`
 
 const defaultTierData = {
@@ -100,10 +102,10 @@ export function ProductPricingModal({
       const serviceTier = existingTiers.find(t => t.capacity_option_id === null)
       if (serviceTier) {
         setServicePrice(serviceTier.price?.toString() || '')
-        setServiceDescription(serviceTier.scope_of_work || '')
+        setServiceDescription(serviceTier.scope_of_work || DEFAULT_SERVICE_DESCRIPTION)
       } else {
         setServicePrice('')
-        setServiceDescription('')
+        setServiceDescription(DEFAULT_SERVICE_DESCRIPTION)
       }
       return
     }
