@@ -7,7 +7,7 @@ import {
   Check, ArrowLeft, Loader2,
   User, Mail, Phone, MapPin,
   Snowflake, Thermometer, Flame, Wind, Zap, Fan, Droplets, Wrench, Settings,
-  Home, Building2, DoorOpen, ArrowDownToLine, MoveDown,
+  Home, Building2, DoorOpen, ArrowDownToLine, MoveDown, Activity, Info,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -259,38 +259,37 @@ const PRODUCT_ICONS: Record<string, React.ComponentType<{ className?: string }>>
 
 // ─── UI Primitives ────────────────────────────────────────────────────────────
 
-function RadioDot({ selected }: { selected: boolean }) {
-  return (
-    <div className={`w-5 h-5 rounded-full border-2 mx-auto mt-3 flex items-center justify-center transition-colors ${
-      selected ? 'border-indigo-600' : 'border-gray-300'
-    }`}>
-      {selected && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
-    </div>
-  )
-}
-
-function IconBox({ Icon }: { Icon: React.ComponentType<{ className?: string }> }) {
-  return (
-    <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center mx-auto mb-3">
-      <Icon className="w-6 h-6 text-white" />
-    </div>
-  )
-}
-
-function SelectCard({ selected, onClick, children }: {
+function SelectCard({ selected, onClick, icon: IconComp, title, description, children }: {
   selected: boolean
   onClick: () => void
-  children: React.ReactNode
+  icon?: React.ComponentType<{ className?: string }>
+  title?: React.ReactNode
+  description?: React.ReactNode
+  children?: React.ReactNode
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-2xl border-2 bg-white p-5 text-center transition-all hover:border-indigo-400 ${
+      className={`w-full flex items-center gap-4 rounded-2xl border-2 bg-white px-4 py-4 text-left transition-all hover:border-indigo-400 ${
         selected ? 'border-indigo-600 shadow-sm' : 'border-gray-200'
       }`}
     >
-      {children}
+      {IconComp && (
+        <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+          <IconComp className="w-6 h-6 text-indigo-600" />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        {title && <p className="font-semibold text-[#1a1a3e] text-sm leading-snug">{title}</p>}
+        {description && <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">{description}</p>}
+        {children}
+      </div>
+      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+        selected ? 'border-indigo-600 bg-indigo-600' : 'border-gray-300'
+      }`}>
+        {selected && <Check className="w-3 h-3 text-white" />}
+      </div>
     </button>
   )
 }
@@ -537,13 +536,24 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const getTiersForSelection = () => {
     if (!selectedProduct) return []
-    return data.pricingTiers
+    const filtered = data.pricingTiers
       .filter(t => {
         if (t.product_id !== selectedProduct.id) return false
         return selectedCapacity ? t.capacity_option_id === selectedCapacity.id : t.capacity_option_id === null
       })
       .sort((a, b) => ({ good: 0, better: 1, best: 2 }[a.tier as 'good'|'better'|'best'] ?? 0) -
                       ({ good: 0, better: 1, best: 2 }[b.tier as 'good'|'better'|'best'] ?? 0))
+    
+    // Debug logging
+    if (filtered.length === 0) {
+      console.log('No tiers found:', {
+        selectedProduct: selectedProduct.id,
+        selectedCapacity: selectedCapacity?.id,
+        allTiers: data.pricingTiers.filter(t => t.product_id === selectedProduct.id)
+      })
+    }
+    
+    return filtered
   }
 
   const getConfigOptions = (): ConfigOption[] => {
@@ -604,7 +614,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const handleSystemTypeSelect = (type: SystemType) => {
     setSystemType(type); setHeatSource(null); setSystemConfig(null)
     resetProductState()
-    setStep(type === 'ac' ? 'system_config' : 'heat_source')
   }
 
   const handleHeatSourceSelect = (source: HeatSource) => {
@@ -614,20 +623,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
       const product = data.products.find(p => p.name.toLowerCase().includes('dual fuel'))
       if (product) {
         setSelectedProduct(product)
-        // Build steps explicitly — state hasn't flushed yet
-        const steps: Step[] = ['system_type', 'heat_source']
-        const isService = product.category === 'service'
-        const isMiniSplit = product.slug === 'mini-split'
-        const isPackaged = product.slug === 'packaged-system'
-        if (product.capacity_options?.length) steps.push('capacity')
-        if (isMiniSplit) steps.push('num_heads')
-        if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
-        if (!isService) steps.push('qty')
-        steps.push('contact', 'confirmation')
-        advanceFrom('heat_source', steps)
       }
-    } else {
-      setStep('system_config')
     }
   }
 
@@ -637,22 +633,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     setSystemConfig(configKey); setSelectedProduct(product)
     setSelectedCapacity(null); setSelectedLocation(''); setUnitQty(1)
     if (!product) { setStep('contact'); return }
-    // Build steps explicitly — state hasn't flushed yet
-    const steps: Step[] = ['system_type']
-    if (systemType === 'heating_cooling' || systemType === 'heating') {
-      steps.push('heat_source', 'system_config')
-    } else if (systemType === 'ac') {
-      steps.push('system_config')
-    }
-    const isService = product.category === 'service'
-    const isMiniSplit = product.slug === 'mini-split'
-    const isPackaged = product.slug === 'packaged-system'
-    if (product.capacity_options?.length) steps.push('capacity')
-    if (isMiniSplit) steps.push('num_heads')
-    if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
-    if (!isService) steps.push('qty')
-    steps.push('contact', 'confirmation')
-    advanceFrom('system_config', steps)
   }
 
   const handleServiceSelect = (service: Product) => {
@@ -734,6 +714,56 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const totalSteps = activeSteps.length - 1
   const progress = step === 'confirmation' ? 100
     : currentStepIndex >= 0 && totalSteps > 0 ? ((currentStepIndex + 1) / totalSteps) * 100 : 0
+
+  const canContinue = (() => {
+    switch (step) {
+      case 'system_type': return !!systemType
+      case 'heat_source': return !!heatSource
+      case 'system_config': return !!systemConfig
+      case 'capacity': return !!selectedCapacity
+      case 'num_heads': return numHeads > 0
+      case 'location': return !!selectedLocation
+      case 'qty': return unitQty > 0
+      default: return false
+    }
+  })()
+
+  const selectionSummary: string[] = (() => {
+    const parts: string[] = []
+    if (systemType) {
+      const opt = SYSTEM_TYPE_OPTIONS.find(o => o.key === systemType)
+      if (opt) parts.push(opt.label)
+    }
+    if (heatSource) {
+      const opts = HEAT_SOURCE_OPTIONS[systemType ?? ''] ?? []
+      const opt = opts.find(o => o.key === heatSource)
+      if (opt) parts.push(opt.label)
+    }
+    if (systemConfig) {
+      const opt = getConfigOptions().find(o => o.key === systemConfig)
+      if (opt) parts.push(opt.label)
+    }
+    if (selectedCapacity) {
+      const sqft = selectedCapacity.sqft
+      parts.push(sqft ? `${sqft} sq ft` : selectedCapacity.label)
+    }
+    if (numHeads && numHeads > 1) parts.push(`${numHeads} heads`)
+    if (selectedLocation) {
+      const loc = LOCATION_OPTIONS.find(l => l.key === selectedLocation)
+      if (loc) parts.push(loc.label)
+    }
+    return parts
+  })()
+
+  const NOT_SURE_HINTS: Partial<Record<Step, string>> = {
+    system_type: 'Most homeowners replacing an existing system should choose Replacement. Choose New Installation only if no system exists.',
+    heat_source: 'Natural gas is the most common heating source. If you only have an outdoor heat pump unit, choose Electric.',
+    system_config: 'Most homes with existing ductwork use a Split System. Choose Packaged Unit if you have an all-in-one outdoor system.',
+    capacity: 'Not sure of your system size? A 2,000–2,500 sq ft home typically needs a 3–4 ton system.',
+    num_heads: 'Each room or zone gets its own indoor unit for independent temperature control.',
+    location: 'The attic is the most common placement for the air handler. Choose where it will be most accessible.',
+    qty: 'Most homeowners replace one unit at a time. Select more if replacing multiple systems at once.',
+  }
 
   const serviceProducts = data.products.filter(p =>
     p.category === 'service' &&
@@ -1062,29 +1092,50 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                   Back
                 </button>
               )}
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
-                <div
-                  className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.max(4, progress)}%` }}
-                />
+              <div className="flex items-center gap-1.5">
+                {activeSteps.filter(s => s !== 'confirmation').map((s, i) => {
+                  const isCurrent = i === currentStepIndex
+                  const isDone = i < currentStepIndex
+                  return (
+                    <div
+                      key={s}
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        isDone ? 'bg-indigo-600 w-2' :
+                        isCurrent ? 'bg-indigo-600 w-6' :
+                        'bg-gray-300 w-2'
+                      }`}
+                    />
+                  )
+                })}
+                <span className="text-xs text-gray-400 ml-2">{currentStepIndex + 1} of {activeSteps.filter(s => s !== 'confirmation').length}</span>
               </div>
+              {selectionSummary.length > 0 && (
+                <div className="flex items-center gap-2 mt-3 px-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100">
+                  <Activity className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">You selected:</span>{' '}
+                    {selectionSummary.map((part, i) => (
+                      <span key={i}>
+                        {i > 0 && <span className="text-gray-400 mx-1">·</span>}
+                        <span className="font-semibold text-indigo-700">{part}</span>
+                      </span>
+                    ))}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* System Type */}
             {step === 'system_type' && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">What type of system do you need?</h2>
                   <p className="text-gray-500 mt-1">Select the system you want to install or replace</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-3">
                   {SYSTEM_TYPE_OPTIONS.map(opt => (
-                    <SelectCard key={opt.key} selected={systemType === opt.key} onClick={() => handleSystemTypeSelect(opt.key)}>
-                      <IconBox Icon={opt.Icon} />
-                      <p className="font-semibold text-[#1a1a3e] text-sm">{opt.label}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
-                      <RadioDot selected={systemType === opt.key} />
-                    </SelectCard>
+                    <SelectCard key={opt.key} selected={systemType === opt.key} onClick={() => handleSystemTypeSelect(opt.key)}
+                      icon={opt.Icon} title={opt.label} description={opt.desc} />
                   ))}
                 </div>
               </>
@@ -1093,18 +1144,14 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Heat Source */}
             {step === 'heat_source' && systemType && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">What&apos;s your heat source?</h2>
                   <p className="text-gray-500 mt-1">Choose the energy source for heating</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-3">
                   {(HEAT_SOURCE_OPTIONS[systemType] ?? []).map(opt => (
-                    <SelectCard key={opt.key} selected={heatSource === opt.key} onClick={() => handleHeatSourceSelect(opt.key)}>
-                      <IconBox Icon={opt.Icon} />
-                      <p className="font-semibold text-[#1a1a3e] text-sm">{opt.label}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
-                      <RadioDot selected={heatSource === opt.key} />
-                    </SelectCard>
+                    <SelectCard key={opt.key} selected={heatSource === opt.key} onClick={() => handleHeatSourceSelect(opt.key)}
+                      icon={opt.Icon} title={opt.label} description={opt.desc} />
                   ))}
                 </div>
               </>
@@ -1113,18 +1160,14 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* System Config */}
             {step === 'system_config' && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">Select your system configuration</h2>
                   <p className="text-gray-500 mt-1">Choose the setup that best fits your home</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-3">
                   {getConfigOptions().map(opt => (
-                    <SelectCard key={opt.key} selected={systemConfig === opt.key} onClick={() => handleSystemConfigSelect(opt.key)}>
-                      <IconBox Icon={opt.Icon} />
-                      <p className="font-semibold text-[#1a1a3e] text-sm">{opt.label}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{opt.desc}</p>
-                      <RadioDot selected={systemConfig === opt.key} />
-                    </SelectCard>
+                    <SelectCard key={opt.key} selected={systemConfig === opt.key} onClick={() => handleSystemConfigSelect(opt.key)}
+                      icon={opt.Icon} title={opt.label} description={opt.desc} />
                   ))}
                 </div>
               </>
@@ -1133,37 +1176,26 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Capacity */}
             {step === 'capacity' && selectedProduct && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">Select System Size</h2>
                   <p className="text-gray-500 mt-1">What size system do you need?</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-3">
                   {[...selectedProduct.capacity_options]
                     .sort((a, b) => a.display_order - b.display_order)
-                    .map(cap => (
-                      <SelectCard
-                        key={cap.id}
-                        selected={selectedCapacity?.id === cap.id}
-                        onClick={() => {
-                          setSelectedCapacity({ id: cap.id, label: cap.label, value: cap.value, unit: cap.unit, sqft: getSqftRange(cap.value, cap.unit) })
-                          advanceFrom('capacity')
-                        }}
-                      >
-                        <IconBox Icon={Home} />
-                        {(() => {
-                          const sqft = getSqftRange(cap.value, cap.unit)
-                          return sqft ? (
-                            <>
-                              <p className="font-semibold text-[#1a1a3e] text-sm">{sqft} sq ft</p>
-                              <p className="text-xs text-gray-400 mt-0.5">{cap.label}</p>
-                            </>
-                          ) : (
-                            <p className="font-semibold text-[#1a1a3e] text-sm">{cap.label}</p>
-                          )
-                        })()}
-                        <RadioDot selected={selectedCapacity?.id === cap.id} />
-                      </SelectCard>
-                    ))}
+                    .map(cap => {
+                      const sqft = getSqftRange(cap.value, cap.unit)
+                      return (
+                        <SelectCard
+                          key={cap.id}
+                          selected={selectedCapacity?.id === cap.id}
+                          onClick={() => setSelectedCapacity({ id: cap.id, label: cap.label, value: cap.value, unit: cap.unit, sqft })}
+                          icon={Home}
+                          title={sqft ? `${sqft} sq ft` : cap.label}
+                          description={sqft ? cap.label : undefined}
+                        />
+                      )
+                    })}
                 </div>
               </>
             )}
@@ -1171,11 +1203,11 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Number of Heads — Mini Split only */}
             {step === 'num_heads' && selectedProduct && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">How many rooms do you want to cool/heat?</h2>
                   <p className="text-gray-500 mt-1">Each room will have its own indoor unit (head) with independent temperature control</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-3">
                   {[
                     { heads: 1, label: '1 Room',   desc: 'Single zone mini-split', Icon: Home },
                     { heads: 2, label: '2 Rooms',  desc: 'Dual zone mini-split',   Icon: Building2 },
@@ -1187,15 +1219,10 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                       <SelectCard
                         key={heads}
                         selected={numHeads === heads}
-                        onClick={() => { setNumHeads(heads); advanceFrom('num_heads') }}
+                        onClick={() => setNumHeads(heads)}
+                        icon={Icon} title={label} description={desc}
                       >
-                        <IconBox Icon={Icon} />
-                        <p className="font-semibold text-[#1a1a3e] text-sm">{label}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
-                        {cost > 0 && (
-                          <p className="text-xs text-green-600 mt-0.5">+${cost.toLocaleString()}</p>
-                        )}
-                        <RadioDot selected={numHeads === heads} />
+                        {cost > 0 && <p className="text-xs text-green-600 mt-0.5">+${cost.toLocaleString()}</p>}
                       </SelectCard>
                     )
                   })}
@@ -1206,33 +1233,16 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Location */}
             {step === 'location' && selectedProduct && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">Indoor Unit Location</h2>
                   <p className="text-gray-500 mt-1">Where will the indoor unit be installed?</p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {(() => {
-                    const cfg = getProductConfig(selectedProduct.id)
-                    const costMap: Record<string, number> = {
-                      attic: cfg?.attic_additional_cost ?? 0, garage: cfg?.garage_additional_cost ?? 0,
-                      closet: cfg?.closet_additional_cost ?? 0, basement: cfg?.basement_additional_cost ?? 0,
-                      crawl_space: cfg?.crawl_space_additional_cost ?? 0,
-                    }
-                    return LOCATION_OPTIONS.map(loc => {
-                        return (
-                          <SelectCard
-                            key={loc.key}
-                            selected={selectedLocation === loc.key}
-                            onClick={() => { setSelectedLocation(loc.key); advanceFrom('location') }}
-                          >
-                            <IconBox Icon={loc.Icon} />
-                            <p className="font-semibold text-[#1a1a3e] text-sm">{loc.label}</p>
-                            <p className="text-xs text-gray-400 mt-0.5">{loc.description}</p>
-                            <RadioDot selected={selectedLocation === loc.key} />
-                          </SelectCard>
-                        )
-                      })
-                  })()}
+                <div className="flex flex-col gap-3">
+                  {LOCATION_OPTIONS.map(loc => (
+                    <SelectCard key={loc.key} selected={selectedLocation === loc.key}
+                      onClick={() => setSelectedLocation(loc.key)}
+                      icon={loc.Icon} title={loc.label} description={loc.description} />
+                  ))}
                 </div>
               </>
             )}
@@ -1240,24 +1250,49 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Qty */}
             {step === 'qty' && (
               <>
-                <div className="text-center mb-10">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">How many units need to be replaced?</h2>
                 </div>
-                <div className="flex gap-3 justify-center flex-wrap">
+                <div className="flex flex-col gap-3">
                   {[1, 2, 3, 4, 5].map(n => (
-                    <SelectCard key={n} selected={unitQty === n} onClick={() => { setUnitQty(n); advanceFrom('qty') }}>
-                      <p className="text-4xl font-bold text-[#1a1a3e] w-16 leading-none py-1">{n}</p>
-                      <RadioDot selected={unitQty === n} />
-                    </SelectCard>
+                    <SelectCard key={n} selected={unitQty === n} onClick={() => setUnitQty(n)}
+                      title={`${n} unit${n > 1 ? 's' : ''}`}
+                      description={n === 1 ? 'Single unit replacement' : `${n} units replaced together`} />
                   ))}
                 </div>
+              </>
+            )}
+
+            {/* Not sure hint + Continue button — shown for all selection steps */}
+            {step !== 'contact' && (
+              <>
+                {NOT_SURE_HINTS[step] && (
+                  <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 mt-3">
+                    <Info className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      <span className="font-semibold text-gray-700">Not sure?</span>{' '}
+                      {NOT_SURE_HINTS[step]}
+                    </p>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => canContinue && advanceFrom(step)}
+                  className={`w-full mt-4 py-4 rounded-2xl font-semibold text-base transition-colors ${
+                    canContinue
+                      ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                      : 'bg-indigo-200 text-white cursor-not-allowed'
+                  }`}
+                >
+                  Continue →
+                </button>
               </>
             )}
 
             {/* Contact */}
             {step === 'contact' && (
               <>
-                <div className="text-center mb-8">
+                <div className="mb-8">
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">Almost there! Tell us about yourself</h2>
                   <p className="text-gray-500 mt-1">We&apos;ll use this information to prepare your personalized quote</p>
                 </div>
