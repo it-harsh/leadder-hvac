@@ -3,7 +3,7 @@
 import { User } from '@supabase/supabase-js'
 import { Business } from '@/lib/types/database'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,9 +24,22 @@ interface PortalHeaderProps {
   business: Business
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  '/portal': 'Dashboard',
+  '/portal/estimator': 'Instant Estimator',
+  '/portal/leads': 'Leads',
+  '/portal/widget': 'Widget',
+  '/portal/settings': 'Settings',
+}
+
 export function PortalHeader({ user, business }: PortalHeaderProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { theme, setTheme } = useTheme()
+
+  const pageTitle = Object.entries(PAGE_TITLES)
+    .filter(([path]) => pathname === path || pathname.startsWith(path + '/'))
+    .sort((a, b) => b[0].length - a[0].length)[0]?.[1] ?? 'Dashboard'
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
@@ -42,9 +55,9 @@ export function PortalHeader({ user, business }: PortalHeaderProps) {
     .slice(0, 2)
 
   return (
-    <header className="h-14 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-6">
+    <header className="h-14 border-b border-border bg-white dark:bg-sidebar backdrop-blur flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
-        <h1 className="text-lg font-semibold text-foreground">Dashboard</h1>
+        <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
       </div>
 
       <div className="flex items-center gap-3">

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Business } from '@/lib/types/database'
-import { Calculator, Users, Settings, Code, Building2 } from 'lucide-react'
+import { Calculator, Users, Settings, Code, Building2, LayoutDashboard } from 'lucide-react'
 import Image from 'next/image'
 
 interface PortalSidebarProps {
@@ -12,6 +12,12 @@ interface PortalSidebarProps {
 }
 
 const navItems = [
+  {
+    label: 'Dashboard',
+    href: '/portal',
+    icon: LayoutDashboard,
+    description: 'Overview',
+  },
   {
     label: 'Instant Estimator',
     href: '/portal/estimator',
@@ -42,7 +48,7 @@ export function PortalSidebar({ business }: PortalSidebarProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
+    <aside className="w-64 bg-white dark:bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
       <div className="p-4 flex justify-center">
         <Link href="/portal">
@@ -53,7 +59,9 @@ export function PortalSidebar({ business }: PortalSidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isActive = item.href === '/portal'
+            ? pathname === '/portal'
+            : pathname === item.href || pathname.startsWith(item.href + '/')
           return (
             <Link
               key={item.href}

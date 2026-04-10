@@ -37,7 +37,7 @@ export default async function PortalLayout({
       <PortalSidebar business={business} />
       <div className="flex-1 flex flex-col min-w-0">
         <PortalHeader user={user} business={business} />
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-8 overflow-auto bg-[#f5f6fa] dark:bg-background">
           {children}
         </main>
       </div>

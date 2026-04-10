@@ -6,46 +6,46 @@
 /* HVAC Quote System - Dark Theme with Charcoal + Emerald */
 :root {
   /* Dark theme as default */
-  --background: oklch(0.12 0 0);
+  --background: oklch(0.09 0 0);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.15 0 0);
+  --card: oklch(0.17 0 0);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.15 0 0);
+  --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.98 0 0);
-  
+
   /* Emerald green primary */
   --primary: oklch(0.696 0.17 162.48);
   --primary-foreground: oklch(0.12 0 0);
-  
+
   --secondary: oklch(0.22 0 0);
   --secondary-foreground: oklch(0.98 0 0);
   --muted: oklch(0.20 0 0);
-  --muted-foreground: oklch(0.65 0 0);
+  --muted-foreground: oklch(0.62 0 0);
   --accent: oklch(0.22 0 0);
   --accent-foreground: oklch(0.98 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.25 0 0);
+  --border: oklch(0.28 0 0);
   --input: oklch(0.20 0 0);
   --ring: oklch(0.696 0.17 162.48);
-  
+
   /* Charts */
   --chart-1: oklch(0.696 0.17 162.48);
   --chart-2: oklch(0.488 0.243 264.376);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  
+
   --radius: 0.5rem;
-  
-  /* Sidebar */
-  --sidebar: oklch(0.10 0 0);
+
+  /* Sidebar — lighter than background so it reads as a raised panel */
+  --sidebar: oklch(0.13 0 0);
   --sidebar-foreground: oklch(0.98 0 0);
   --sidebar-primary: oklch(0.696 0.17 162.48);
   --sidebar-primary-foreground: oklch(0.12 0 0);
-  --sidebar-accent: oklch(0.18 0 0);
+  --sidebar-accent: oklch(0.20 0 0);
   --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(0.22 0 0);
+  --sidebar-border: oklch(0.26 0 0);
   --sidebar-ring: oklch(0.696 0.17 162.48);
   
   /* Custom HVAC colors */
@@ -174,26 +174,34 @@
 
 .widget-scope-html ul {
   list-style-type: disc;
+  list-style-position: outside;
   padding-left: 1.5rem;
-  margin-bottom: 0.75rem;
+  margin: 0.75rem 0;
 }
 
 .widget-scope-html ol {
   list-style-type: decimal;
+  list-style-position: outside;
   padding-left: 1.5rem;
-  margin-bottom: 0.75rem;
+  margin: 0.75rem 0;
 }
 
 .widget-scope-html li {
   margin-bottom: 0.375rem;
+  padding-left: 0.25rem;
 }
 
 .widget-scope-html p {
   margin-bottom: 0.5rem;
 }
 
+.widget-scope-html p:last-child {
+  margin-bottom: 0;
+}
+
 .widget-scope-html strong {
   font-weight: 600;
+  color: #1a1a3e;
 }
 
 /* TipTap editor content styling */
