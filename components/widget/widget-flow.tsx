@@ -1266,16 +1266,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
             {/* Not sure hint + Continue button — shown for all selection steps */}
             {step !== 'contact' && (
               <>
-                {NOT_SURE_HINTS[step] && (
-                  <div className="flex items-start gap-3 rounded-2xl border border-gray-200 bg-white px-4 py-3 mt-3">
-                    <Info className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-gray-500 leading-relaxed">
-                      <span className="font-semibold text-gray-700">Not sure?</span>{' '}
-                      {NOT_SURE_HINTS[step]}
-                    </p>
-                  </div>
-                )}
-                <button
                   type="button"
                   onClick={() => canContinue && advanceFrom(step)}
                   className={`w-full mt-4 py-4 rounded-2xl font-semibold text-base transition-colors ${
