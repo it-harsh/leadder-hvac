@@ -5,7 +5,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import { Bold, Italic, Underline as UnderlineIcon, Heading1, Heading2, List, ListOrdered } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 
 interface RichTextEditorProps {
   value: string
@@ -42,32 +42,41 @@ function ToolbarBtn({
 }
 
 export function RichTextEditor({ value, onChange, className }: RichTextEditorProps) {
-  const [, forceUpdate] = useState({})
+  // Track whether the last content change came from the user typing (not from a prop update)
+  const isInternalUpdate = useRef(false)
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2] },
-        bulletList: {
-          keepMarks: true,
-          keepAttributes: true,
-        },
-        orderedList: {
-          keepMarks: true,
-          keepAttributes: true,
-        },
+        bulletList: { keepMarks: true, keepAttributes: true },
+        orderedList: { keepMarks: true, keepAttributes: true },
       }),
       Underline,
     ],
     content: value,
-    onUpdate: ({ editor }) => onChange(editor.getHTML()),
-    onSelectionUpdate: () => forceUpdate({}),
+    onUpdate: ({ editor }) => {
+      isInternalUpdate.current = true
+      onChange(editor.getHTML())
+    },
     editorProps: {
       attributes: {
         class: 'rich-text-content min-h-[160px] px-4 py-3 text-sm text-foreground focus:outline-none',
       },
     },
-  }, [value])
+  })
+
+  // Sync external value changes (e.g. loading saved data) without re-creating the editor
+  useEffect(() => {
+    if (!editor) return
+    if (isInternalUpdate.current) {
+      isInternalUpdate.current = false
+      return
+    }
+    if (editor.getHTML() !== value) {
+      editor.commands.setContent(value, false)
+    }
+  }, [editor, value])
 
   if (!editor) return null
 
