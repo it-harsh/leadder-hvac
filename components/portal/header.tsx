@@ -55,7 +55,7 @@ export function PortalHeader({ user, business }: PortalHeaderProps) {
     .slice(0, 2)
 
   return (
-    <header className="h-14 border-b border-border bg-white dark:bg-sidebar backdrop-blur flex items-center justify-between px-6">
+    <header className="h-14 border-b border-border bg-muted dark:bg-sidebar backdrop-blur flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
       </div>
