@@ -1296,6 +1296,21 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
               </>
             )}
 
+            {/* Continue button — shown for all selection steps */}
+            {step !== 'contact' && (
+              <button
+                type="button"
+                onClick={() => canContinue && advanceFrom(step)}
+                className={`w-full mt-4 py-4 rounded-2xl font-semibold text-base transition-colors ${
+                  canContinue
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'bg-indigo-200 text-white cursor-not-allowed'
+                }`}
+              >
+                Continue →
+              </button>
+            )}
+
             {/* Contact */}
             {step === 'contact' && (
               <>
