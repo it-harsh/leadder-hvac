@@ -629,6 +629,8 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const handleSystemTypeSelect = (type: SystemType) => {
     setSystemType(type); setHeatSource(null); setSystemConfig(null)
     resetProductState()
+    if (type === 'heating_cooling' || type === 'heating') setStep('heat_source')
+    else setStep('system_config')
   }
 
   const handleHeatSourceSelect = (source: HeatSource) => {
@@ -636,9 +638,11 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     resetProductState()
     if (source === 'dual_fuel') {
       const product = data.products.find(p => p.name.toLowerCase().includes('dual fuel'))
-      if (product) {
-        setSelectedProduct(product)
-      }
+      if (product) setSelectedProduct(product)
+      if (product?.capacity_options?.length) setStep('capacity')
+      else setStep('qty')
+    } else {
+      setStep('system_config')
     }
   }
 
@@ -648,6 +652,11 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     setSystemConfig(configKey); setSelectedProduct(product)
     setSelectedCapacity(null); setSelectedLocation(''); setUnitQty(1)
     if (!product) { setStep('contact'); return }
+    const isMiniSplit = product.slug === 'mini-split'
+    const isPackaged = product.slug === 'packaged-system'
+    if (product.capacity_options?.length) setStep('capacity')
+    else if (!isMiniSplit && !isPackaged) setStep('location')
+    else setStep('qty')
   }
 
   const handleServiceSelect = (service: Product) => {
@@ -1206,7 +1215,14 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                         <SelectCard
                           key={cap.id}
                           selected={selectedCapacity?.id === cap.id}
-                          onClick={() => setSelectedCapacity({ id: cap.id, label: cap.label, value: cap.value, unit: cap.unit, sqft })}
+                          onClick={() => {
+                            setSelectedCapacity({ id: cap.id, label: cap.label, value: cap.value, unit: cap.unit, sqft })
+                            const isMiniSplit = selectedProduct.slug === 'mini-split'
+                            const isPackaged = selectedProduct.slug === 'packaged-system'
+                            if (isMiniSplit) setStep('num_heads')
+                            else if (!isPackaged) setStep('location')
+                            else setStep('qty')
+                          }}
                           icon={Home}
                           title={sqft ? `${sqft} sq ft` : cap.label}
                           description={sqft ? cap.label : undefined}
@@ -1236,7 +1252,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                       <SelectCard
                         key={heads}
                         selected={numHeads === heads}
-                        onClick={() => setNumHeads(heads)}
+                        onClick={() => { setNumHeads(heads); setStep('qty') }}
                         icon={Icon} title={label} description={desc}
                       >
                         {cost > 0 && <p className="text-xs text-green-600 mt-0.5">+${cost.toLocaleString()}</p>}
@@ -1257,7 +1273,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                 <div className="flex flex-col gap-3">
                   {LOCATION_OPTIONS.map(loc => (
                     <SelectCard key={loc.key} selected={selectedLocation === loc.key}
-                      onClick={() => setSelectedLocation(loc.key)}
+                      onClick={() => { setSelectedLocation(loc.key); setStep('qty') }}
                       icon={loc.Icon} title={loc.label} description={loc.description} />
                   ))}
                 </div>
@@ -1272,27 +1288,12 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                 </div>
                 <div className="flex flex-col gap-3">
                   {[1, 2, 3, 4, 5].map(n => (
-                    <SelectCard key={n} selected={unitQty === n} onClick={() => setUnitQty(n)}
+                    <SelectCard key={n} selected={unitQty === n} onClick={() => { setUnitQty(n); setStep('contact') }}
                       title={`${n} unit${n > 1 ? 's' : ''}`}
                       description={n === 1 ? 'Single unit replacement' : `${n} units replaced together`} />
                   ))}
                 </div>
               </>
-            )}
-
-            {/* Continue button — shown for all selection steps */}
-            {step !== 'contact' && (
-              <button
-                type="button"
-                onClick={() => canContinue && advanceFrom(step)}
-                className={`w-full mt-4 py-4 rounded-2xl font-semibold text-base transition-colors ${
-                  canContinue
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                    : 'bg-indigo-200 text-white cursor-not-allowed'
-                }`}
-              >
-                Continue →
-              </button>
             )}
 
             {/* Contact */}
