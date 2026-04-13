@@ -2,7 +2,7 @@
 
 An embeddable HVAC quoting widget + business portal built with Next.js and Supabase.
 
-**Live:** [https://leadder-ochre.vercel.app](https://leadder-ochre.vercel.app)
+**Live:** [https://leadder.io](https://leadder.io)
 
 ---
 
@@ -12,33 +12,64 @@ Leadder gives HVAC businesses a branded instant-estimate widget they embed on th
 
 ---
 
-## Features
+## Features Completed
 
-### Widget (customer-facing, embedded via iframe)
-- Guided HVAC flow: System Type → Heat Source → System Config → Capacity → Install Location → Quantity → Contact → 3-tier quote
-- Services flow: flat-price service selection → Contact → Confirmation
-- Good / Better / Best quote display with tier images, efficiency description, warranty, and scope of work
-- Financing monthly payment display (configurable APR + term)
-- Redirect button after quote (e.g. to booking page)
-- Fully responsive — works on mobile, tablet, desktop
-- Three embed options: iframe, button + popup modal, direct link
+### Auth & Onboarding
+- Sign up, login, forgot password pages
+- Business creation on first sign-up (name, slug, phone, email, website)
+- Auth-gated portal with Supabase SSR sessions
 
-### Portal (business dashboard at `/portal`)
-- **Instant Estimator** — configure Good / Better / Best pricing per product and capacity with per-location surcharges (attic, basement, closet, garage, crawl space) and multi-unit discounts
-- **System Config** — set tier images, efficiency descriptions, warranty years, and scope of work per tier; apply to all capacities in one click
-- **Leads** — view and manage every quote submission with status tracking
-- **Widget** — copy iframe, modal, or direct-link embed code
-- **Settings**
-  - *General* — widget title, subtitle, thank-you message, price range %, redirect URL + button text
-  - *Financing* — enable/disable, APR, term months, link text + URL
-  - *Integrations* — webhook URL for forwarding leads to Make.com, Zapier, n8n, GHL, etc.
-- **Profile** — business name, phone, email, website, address
-- Light / dark theme toggle
+### Admin Portal
+- Dashboard — total leads, pricing tiers configured, widget status at a glance
+- Sidebar navigation with logo, page links, business name pill in footer
+- Dark / light theme toggle in header
+- Dynamic page title in header per route
 
-### Auth
-- Email + password sign up / sign in
-- Email confirmation flow
-- Forgot password / reset password
+### Instant Estimator (Pricing Configuration)
+- 8 HVAC products: Gas Furnace Split, Cooling Only Split, Mini Split, Packaged System, Furnace, Boiler, Dual Fuel, Heat Pump
+- Services: custom service products with single price
+- Good / Better / Best pricing grid per product × capacity combination
+- Per-capacity toggles — enable/disable individual sizes
+- Per-product toggles — show/hide in widget
+- Batch save — edit multiple prices then save in one click
+- System Config Panel — per tier: efficiency description, warranty years, scope of work (rich text), product image upload with fallback to default images
+- TipTap rich text editor for scope of work (bold, italic, H1/H2, bullet lists, numbered lists)
+- Price Range % — show a low–high range instead of exact price
+- Multi-unit discount % — automatic discount when customer selects 2+ units
+- Location adjustments — per-location (attic, basement, closet, garage, crawl space) price add-on
+- Mini Split heads — per-head-count add-on cost (2, 3, 4+ heads)
+- Fuel type (oil) — oil surcharge for furnace/boiler
+
+### Public Widget
+- HVAC tab: full guided multi-step flow
+  - System type → Heat source → System config → Capacity → Num heads (mini-split) → Location → Quantity → Contact → Quote results
+  - Auto-advance on click (no Continue button)
+  - Dot progress indicator + step counter
+  - Back navigation
+  - Selection summary bar
+  - Default product images per system type
+- Services tab: service picker → contact form → confirmation
+- 3-tier confirmation cards (Good / Better / Best) with image, price range, efficiency, scope of work, warranty
+- Financing display — monthly payment estimate on each tier card
+- Country code phone input with flag selector (20+ countries)
+- Post-submission redirect button (optional CTA)
+
+### Lead Capture
+- Leads table in portal with all customer details
+- Captures: name, email, phone, address, product, capacity, tier, all 3 prices (good/better/best)
+
+### Widget Embed
+- Embed code page with Simple (script tag) and Advanced (manual init) tabs
+- Modal preview page — live preview of widget in a popup
+- iFrame preview page — widget embedded in a mock website, desktop/mobile toggle
+
+### Settings
+- Business info — name, email, phone, website
+- Widget customization — title, subtitle, thank you message, enable/disable toggle
+- Post-submission button — custom button text + redirect URL on confirmation screen
+- Financing — term (months), APR, link text + URL
+- Webhook — POST lead JSON to Make.com, Zapier, n8n, HubSpot, Pipedrive, or any CRM
+- GoHighLevel (GHL) integration — upsert contact + create opportunity in pipeline on every new lead
 
 ---
 
