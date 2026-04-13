@@ -517,7 +517,8 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     const cfg = selectedProduct ? getProductConfig(selectedProduct.id) : undefined
     const isMiniSplit = selectedProduct?.slug === 'mini-split'
     const isPackaged = selectedProduct?.slug === 'packaged-system'
-    const locationCost = selectedProduct && !isMiniSplit && !isPackaged
+    const isCoolingOnly = selectedProduct?.slug === 'split-system-cooling-only'
+    const locationCost = selectedProduct && !isMiniSplit && !isPackaged && !isCoolingOnly
       ? getLocationCost(selectedProduct.id, selectedLocation) : 0
     const headsCost = selectedProduct && isMiniSplit
       ? getHeadsCost(selectedProduct.id, numHeads) : 0
@@ -525,6 +526,18 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
       ? (getProductConfig(selectedProduct.id)?.oil_additional_cost ?? 0) : 0
     const discountPct = cfg?.multi_unit_discount_pct ?? 0
     let base = price + locationCost + headsCost + oilCost
+    
+    // Debug logging
+    console.log('Price calculation:', {
+      basePrice: price,
+      locationCost,
+      headsCost,
+      oilCost,
+      selectedLocation,
+      productSlug: selectedProduct?.slug,
+      finalBase: base
+    })
+    
     if (unitQty > 1 && discountPct > 0) base = base * unitQty * (1 - discountPct / 100)
     else if (unitQty > 1) base = base * unitQty
     return Math.round(base)
@@ -593,9 +606,10 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
       const isService = selectedProduct.category === 'service'
       const isMiniSplit = selectedProduct.slug === 'mini-split'
       const isPackaged = selectedProduct.slug === 'packaged-system'
+      const isCoolingOnly = selectedProduct.slug === 'split-system-cooling-only'
       if (selectedProduct.capacity_options?.length) steps.push('capacity')
       if (isMiniSplit) steps.push('num_heads')
-      if (!isService && !isMiniSplit && !isPackaged) steps.push('location')
+      if (!isService && !isMiniSplit && !isPackaged && !isCoolingOnly) steps.push('location')
       if (!isService) steps.push('qty')
     }
     steps.push('contact', 'confirmation')
