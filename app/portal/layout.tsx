@@ -26,7 +26,7 @@ export default async function PortalLayout({
     // Re-verify: caller must still be a platform admin
     const isAdmin = await isPlatformAdmin(user.id)
     if (!isAdmin) {
-      redirect('/admin')
+      redirect('/admin/exit-impersonation')
     }
 
     const serviceClient = await createServiceClient()
@@ -39,7 +39,8 @@ export default async function PortalLayout({
       .maybeSingle()
 
     if (!settings?.support_access_enabled) {
-      redirect('/admin')
+      // Clear cookie + redirect via dedicated route handler
+      redirect('/admin/exit-impersonation')
     }
 
     // Resolve the impersonated business
@@ -50,7 +51,7 @@ export default async function PortalLayout({
       .maybeSingle()
 
     if (!business) {
-      redirect('/admin')
+      redirect('/admin/exit-impersonation')
     }
 
     console.log('[portal/layout] IMPERSONATING business:', business.id, 'as admin:', user.id)
