@@ -34,7 +34,6 @@ export async function getPortalBusiness(): Promise<PortalContext> {
   if (impersonatingId) {
     const isAdmin = await isPlatformAdmin(user.id)
     if (!isAdmin) {
-      cookieStore.delete(IMPERSONATION_COOKIE)
       const supabase = await createClient()
       return { business: null, isImpersonating: false, supabase }
     }
@@ -48,7 +47,6 @@ export async function getPortalBusiness(): Promise<PortalContext> {
       .maybeSingle()
 
     if (!settings?.support_access_enabled) {
-      cookieStore.delete(IMPERSONATION_COOKIE)
       return { business: null, isImpersonating: false, supabase: serviceClient }
     }
 

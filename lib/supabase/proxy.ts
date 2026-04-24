@@ -63,6 +63,19 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  // Clear stale impersonation cookie when admin lands on /admin
+  if (request.nextUrl.pathname.startsWith('/admin') && user) {
+    const impersonatingCookie = request.cookies.get('leadder_impersonating_business_id')
+    if (impersonatingCookie?.value) {
+      supabaseResponse.cookies.set('leadder_impersonating_business_id', '', {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 0,
+      })
+    }
+  }
+
   // If user is logged in and tries to access auth pages, redirect to portal
   if (
     user &&

@@ -23,7 +23,7 @@ export function ImpersonationBanner({ businessName }: ImpersonationBannerProps) 
   }
 
   return (
-    <div className="sticky top-0 z-30 w-full bg-amber-400 dark:bg-amber-500 text-amber-950 dark:text-amber-950">
+    <div className="w-full bg-amber-400 dark:bg-amber-500 text-amber-950 dark:text-amber-950">
       <div className="flex items-center justify-between px-4 py-2 gap-4">
         <div className="flex items-center gap-2 text-sm font-medium">
           <AlertTriangle className="w-4 h-4 shrink-0" />
