@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { ProductGrid } from '@/components/portal/estimator/product-grid'
 
 export default async function EstimatorPage() {
-  const { business, supabase } = await getPortalBusiness()
+  const { business, supabase, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   // Fetch all products with capacity options for this business

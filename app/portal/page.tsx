@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Calculator, Users, Code, ArrowRight, TrendingUp } from 'lucide-react'
 
 export default async function PortalPage() {
-  const { business, supabase } = await getPortalBusiness()
+  const { business, supabase, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   // Fetch stats in parallel

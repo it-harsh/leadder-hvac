@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { LeadsTable } from '@/components/portal/leads-table'
 
 export default async function LeadsPage() {
-  const { business, supabase } = await getPortalBusiness()
+  const { business, supabase, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   // Fetch leads for this business

@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { WidgetEmbedCode } from '@/components/portal/widget-embed-code'
 
 export default async function WidgetPage() {
-  const { business } = await getPortalBusiness()
+  const { business, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   // Get base URL for the widget

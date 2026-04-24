@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import { SettingsForm } from '@/components/portal/settings-form'
 
 export default async function SettingsPage() {
-  const { business, supabase, isImpersonating } = await getPortalBusiness()
+  const { business, supabase, isImpersonating, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   const { data: settings } = await supabase

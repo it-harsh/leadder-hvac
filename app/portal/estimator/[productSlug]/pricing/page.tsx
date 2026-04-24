@@ -11,10 +11,10 @@ interface PricingPageProps {
 export default async function PricingPage({ params }: PricingPageProps) {
   const { productSlug } = await params
 
-  const { business, supabase } = await getPortalBusiness()
+  const { business, supabase, accessRevoked } = await getPortalBusiness()
 
   if (!business) {
-    redirect('/auth/login')
+    redirect(accessRevoked ? '/admin/exit-impersonation' : '/auth/login')
   }
 
   // Fetch the product by slug and business_id
