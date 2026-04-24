@@ -26,7 +26,7 @@ export default async function PortalLayout({
     // Re-verify: caller must still be a platform admin
     const isAdmin = await isPlatformAdmin(user.id)
     if (!isAdmin) {
-      // Clear stale cookie + boot to login
+      cookieStore.delete(IMPERSONATION_COOKIE)
       redirect('/auth/login')
     }
 
@@ -40,7 +40,8 @@ export default async function PortalLayout({
       .maybeSingle()
 
     if (!settings?.support_access_enabled) {
-      // Access revoked — clear cookie and redirect back to admin
+      // Access revoked — clear impersonation cookie then redirect to admin
+      cookieStore.delete(IMPERSONATION_COOKIE)
       redirect('/admin')
     }
 
@@ -52,6 +53,7 @@ export default async function PortalLayout({
       .maybeSingle()
 
     if (!business) {
+      cookieStore.delete(IMPERSONATION_COOKIE)
       redirect('/admin')
     }
 
@@ -59,9 +61,9 @@ export default async function PortalLayout({
 
     return (
       <div className="min-h-screen bg-background">
-        <ImpersonationBanner businessName={business.name} />
         <PortalSidebar business={business} isAdmin={false} />
         <div className="ml-64 flex flex-col min-h-screen">
+          <ImpersonationBanner businessName={business.name} />
           <PortalHeader user={user} business={business} />
           <main className="flex-1 p-8 bg-[#f5f6fa] dark:bg-background">
             {children}
