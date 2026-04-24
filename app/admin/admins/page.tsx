@@ -1,5 +1,4 @@
 import { createServiceClient, getUser } from '@/lib/supabase/server'
-import { CreateAdminForm } from '@/components/admin/create-admin-form'
 
 interface AdminRow {
   id: string
@@ -33,15 +32,14 @@ export default async function AdminManagementPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Platform Admins</h1>
         <p className="text-muted-foreground mt-1">
-          Manage who has access to the Leadder admin panel
+          Platform admin accounts with access to the Leadder admin panel
         </p>
       </div>
 
-      {/* Existing admins table */}
       <div className="border border-border rounded-lg overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-muted/50">
@@ -85,9 +83,6 @@ export default async function AdminManagementPage() {
           </tbody>
         </table>
       </div>
-
-      {/* Create admin form */}
-      <CreateAdminForm />
     </div>
   )
 }
