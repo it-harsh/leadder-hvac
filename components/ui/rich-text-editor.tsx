@@ -47,6 +47,7 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
   const [, forceRender] = useState(0)
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2] },
@@ -59,8 +60,10 @@ export function RichTextEditor({ value, onChange, className }: RichTextEditorPro
     onUpdate: ({ editor }) => {
       isInternalUpdate.current = true
       onChange(editor.getHTML())
+      forceRender(n => n + 1)
     },
     onSelectionUpdate: () => forceRender(n => n + 1),
+    onTransaction: () => forceRender(n => n + 1),
     editorProps: {
       attributes: {
         class: 'rich-text-content min-h-[160px] px-4 py-3 text-sm text-foreground focus:outline-none',

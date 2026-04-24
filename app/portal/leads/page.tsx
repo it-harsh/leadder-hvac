@@ -1,20 +1,9 @@
-import { createClient, getUser } from '@/lib/supabase/server'
+import { getPortalBusiness } from '@/lib/portal/get-portal-business'
 import { redirect } from 'next/navigation'
 import { LeadsTable } from '@/components/portal/leads-table'
 
 export default async function LeadsPage() {
-  const user = await getUser()
-  if (!user) {
-    redirect('/auth/login')
-  }
-  const supabase = await createClient()
-
-  // Fetch the user's business
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('owner_id', user.id)
-    .single()
+  const { business, supabase } = await getPortalBusiness()
 
   if (!business) {
     redirect('/auth/login')

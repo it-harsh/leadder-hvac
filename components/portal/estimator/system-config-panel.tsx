@@ -12,8 +12,6 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { TierSystemConfiguration, CapacityOption, PricingTier } from '@/lib/types/database'
 
-const supabase = createClient()
-
 const DEFAULT_PRODUCT_IMAGES: Record<string, string> = {
   'split-system-gas-furnace':  '/system-images/split.png',
   'split-system-cooling-only': '/system-images/split.png',
@@ -68,6 +66,7 @@ export function SystemConfigPanel({
   onConfigUpdate,
   onTiersUpdate,
 }: SystemConfigPanelProps) {
+  const supabase = createClient()
 
   const fileInputRefs = useRef<Record<TierType, HTMLInputElement | null>>({ good: null, better: null, best: null })
   const [uploadingTier, setUploadingTier] = useState<TierType | null>(null)
@@ -106,15 +105,17 @@ export function SystemConfigPanel({
   useEffect(() => {
     const missingTiers = TIER_ORDER.filter(tier => !systemConfig.find(c => c.tier === tier))
     if (missingTiers.length === 0) return
-    Promise.all(missingTiers.map(tier =>
-      supabase.from('tier_system_configurations').insert({
-        business_id: businessId,
-        product_id: productId,
-        tier,
-        efficiency_description: DEFAULT_EFFICIENCY[tier],
-        scope_of_work: DEFAULT_SCOPE,
-      })
-    ))
+    fetch('/api/portal/system-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'seed',
+        productId,
+        tiers: missingTiers,
+        defaultEfficiency: DEFAULT_EFFICIENCY,
+        defaultScope: DEFAULT_SCOPE,
+      }),
+    })
   }, [businessId, productId])
 
   function updateField(tier: TierType, field: string, value: string) {
@@ -149,45 +150,36 @@ export function SystemConfigPanel({
   }
 
   async function saveTierConfig(tier: TierType) {
+    const cfg = configs[tier]
+
+    // Optimistic update
+    const optimisticEntry = {
+      ...(systemConfig.find(c => c.tier === tier) ?? {
+        id: `optimistic-${tier}`, business_id: businessId, product_id: productId,
+        created_at: '', updated_at: '',
+      }),
+      tier,
+      efficiency_description: cfg.efficiency_description || null,
+      warranty_years: cfg.warranty_years ? parseInt(cfg.warranty_years) : null,
+      scope_of_work: cfg.scope_of_work || null,
+      image_url: cfg.image_url || null,
+    }
+    onConfigUpdate([...systemConfig.filter(c => c.tier !== tier), optimisticEntry])
     setSavingTier(tier)
+
     try {
-      const cfg = configs[tier]
-      const payload = {
-        business_id: businessId,
-        product_id: productId,
-        tier,
-        efficiency_description: cfg.efficiency_description || null,
-        warranty_years: cfg.warranty_years ? parseInt(cfg.warranty_years) : null,
-        scope_of_work: cfg.scope_of_work || null,
-        image_url: cfg.image_url || null,
-        updated_at: new Date().toISOString(),
-      }
-
-      const existing = systemConfig.find(c => c.tier === tier)
-      let result
-
-      if (existing) {
-        result = await supabase
-          .from('tier_system_configurations')
-          .update(payload)
-          .eq('id', existing.id)
-          .select()
-          .single()
-      } else {
-        result = await supabase
-          .from('tier_system_configurations')
-          .insert(payload)
-          .select()
-          .single()
-      }
-
-      if (result.error) throw result.error
-
-      const updated = systemConfig.filter(c => c.tier !== tier)
-      onConfigUpdate([...updated, result.data])
+      const res = await fetch('/api/portal/system-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save-tier', productId, tier, config: cfg }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      const { config: saved } = await res.json()
+      onConfigUpdate([...systemConfig.filter(c => c.tier !== tier), saved])
       toast.success(`${tier.charAt(0).toUpperCase() + tier.slice(1)} tier saved`)
     } catch (err) {
       console.error('Error saving tier config:', err)
+      onConfigUpdate(systemConfig) // rollback
       toast.error('Failed to save tier configuration')
     } finally {
       setSavingTier(null)
@@ -195,71 +187,32 @@ export function SystemConfigPanel({
   }
 
   async function applyToAll() {
+    const enabledCapacities = capacities.filter(c => c.is_enabled)
+    if (enabledCapacities.length === 0) {
+      toast.error('No enabled capacities to apply to')
+      return
+    }
+
     setApplyingAll(true)
     try {
-      const enabledCapacities = capacities.filter(c => c.is_enabled)
-      if (enabledCapacities.length === 0) {
-        toast.error('No enabled capacities to apply to')
-        return
-      }
+      const tierConfigs = Object.fromEntries(
+        TIER_ORDER.map(tier => [tier, { warranty_years: configs[tier].warranty_years, scope_of_work: configs[tier].scope_of_work }])
+      )
 
-      const updates: any[] = []
-
-      for (const capacity of enabledCapacities) {
-        for (const tier of TIER_ORDER) {
-          const cfg = configs[tier]
-          const warrantyYears = cfg.warranty_years ? parseInt(cfg.warranty_years) : null
-          const scopeOfWork = cfg.scope_of_work || null
-
-          const existing = tiers.find(
-            t => t.capacity_option_id === capacity.id && t.tier === tier
-          )
-
-          if (existing) {
-            updates.push(
-              supabase
-                .from('pricing_tiers')
-                .update({
-                  warranty_years: warrantyYears,
-                  scope_of_work: scopeOfWork,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('id', existing.id)
-                .then(r => r)
-            )
-          } else {
-            updates.push(
-              supabase
-                .from('pricing_tiers')
-                .insert({
-                  business_id: businessId,
-                  product_id: productId,
-                  capacity_option_id: capacity.id,
-                  tier,
-                  price: 0,
-                  warranty_years: warrantyYears,
-                  scope_of_work: scopeOfWork,
-                  is_active: true,
-                })
-                .then(r => r)
-            )
-          }
-        }
-      }
-
-      const results = await Promise.all(updates)
-      const errors = results.filter(r => r.error)
-      if (errors.length > 0) throw new Error('Some updates failed')
-
-      // Refresh tiers
-      const { data: refreshedTiers } = await supabase
-        .from('pricing_tiers')
-        .select('*')
-        .eq('business_id', businessId)
-        .eq('product_id', productId)
-
+      const res = await fetch('/api/portal/system-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'apply-to-all',
+          productId,
+          capacityIds: enabledCapacities.map(c => c.id),
+          tierConfigs,
+        }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      const { tiers: refreshedTiers } = await res.json()
       if (refreshedTiers) onTiersUpdate(refreshedTiers)
-      toast.success(`Applied to ${enabledCapacities.length} capacities`)
+      toast.success(`Applied to ${enabledCapacities.length} capacit${enabledCapacities.length > 1 ? 'ies' : 'y'}`)
     } catch (err) {
       console.error('Error applying to all:', err)
       toast.error('Failed to apply configurations')

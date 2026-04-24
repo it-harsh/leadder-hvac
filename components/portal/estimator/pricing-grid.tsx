@@ -17,8 +17,6 @@ import { MiniSplitHeadsCard } from './mini-split-heads-card'
 import { FuelTypeCard } from './fuel-type-card'
 import { ProductPricingModal } from './product-pricing-modal'
 
-const supabase = createClient()
-
 interface PricingGridProps {
   product: Product
   capacities: CapacityOption[]
@@ -39,6 +37,7 @@ export function PricingGridComponent({
   businessSlug,
 }: PricingGridProps) {
   const router = useRouter()
+  const supabase = createClient()
 
   const [localCapacities, setLocalCapacities] = useState<CapacityOption[]>(capacities)
   const [localTiers, setLocalTiers] = useState<PricingTier[]>(tiers)
@@ -57,20 +56,26 @@ export function PricingGridComponent({
   }
   const tierLabels = { good: 'Good', better: 'Better', best: 'Best' }
 
-  // Capacity toggle
+  // Capacity toggle — uses server API route to bypass RLS reliably
   const handleToggleCapacity = async (capacityId: string, currentEnabled: boolean) => {
     setTogglingCapacity(capacityId)
+    const newEnabled = !currentEnabled
     try {
-      const { error } = await supabase
-        .from('capacity_options')
-        .update({ is_enabled: !currentEnabled })
-        .eq('id', capacityId)
-      if (error) throw error
+      const res = await fetch('/api/portal/capacity-toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ capacityId, isEnabled: newEnabled }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to update')
+      }
       setLocalCapacities(prev =>
-        prev.map(c => c.id === capacityId ? { ...c, is_enabled: !currentEnabled } : c)
+        prev.map(c => c.id === capacityId ? { ...c, is_enabled: newEnabled } : c)
       )
-      toast.success(!currentEnabled ? 'Capacity enabled' : 'Capacity disabled')
-    } catch {
+      toast.success(newEnabled ? 'Capacity enabled' : 'Capacity disabled')
+    } catch (err) {
+      console.error('[capacity-toggle]', err)
       toast.error('Failed to update capacity')
     } finally {
       setTogglingCapacity(null)
@@ -101,55 +106,79 @@ export function PricingGridComponent({
 
   const handleSaveAll = async () => {
     if (pendingChanges.size === 0) return
+
+    const count = pendingChanges.size
+    const changes = Array.from(pendingChanges.entries()).map(([key, price]) => {
+      const lastPipe = key.lastIndexOf('|')
+      const capacityId = key.slice(0, lastPipe)
+      const tier = key.slice(lastPipe + 1) as 'good' | 'better' | 'best'
+      const existing = localTiers.find(t => t.capacity_option_id === capacityId && t.tier === tier)
+      // Only pass existingTierId if it's a real DB ID (not an optimistic placeholder)
+      const existingTierId = existing?.id && !existing.id.startsWith('optimistic-')
+        ? existing.id
+        : undefined
+      return { capacityId, tier, price, existingTierId }
+    })
+
+    // Optimistic: apply pending changes to localTiers immediately and clear pending
+    const optimisticTiers = [...localTiers]
+    for (const change of changes) {
+      if (change.price === null) continue
+      const existingIdx = optimisticTiers.findIndex(
+        t => t.capacity_option_id === change.capacityId && t.tier === change.tier
+      )
+      if (existingIdx >= 0) {
+        optimisticTiers[existingIdx] = { ...optimisticTiers[existingIdx], price: change.price }
+      } else {
+        optimisticTiers.push({
+          id: `optimistic-${change.capacityId}-${change.tier}`,
+          business_id: businessId,
+          product_id: product.id,
+          capacity_option_id: change.capacityId,
+          tier: change.tier,
+          price: change.price,
+          is_active: true,
+          warranty_years: null,
+          features: [],
+          scope_of_work: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+      }
+    }
+    // Snapshot previous state for rollback
+    const prevTiers = localTiers
+    setLocalTiers(optimisticTiers)
+    setPendingChanges(new Map())
     setIsSaving(true)
+
     try {
-      const updates: any[] = []
+      const res = await fetch('/api/portal/pricing-tiers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: product.id, changes }),
+      })
 
-      for (const [key, price] of pendingChanges.entries()) {
-        const lastPipe = key.lastIndexOf('|')
-        const capacityId = key.slice(0, lastPipe)
-        const tier = key.slice(lastPipe + 1) as 'good' | 'better' | 'best'
-
-        const existing = localTiers.find(t => t.capacity_option_id === capacityId && t.tier === tier)
-
-        if (existing) {
-          if (price !== null) {
-            updates.push(
-              supabase.from('pricing_tiers')
-                .update({ price, updated_at: new Date().toISOString() })
-                .eq('id', existing.id)
-                .then(r => r)
-            )
-          }
-        } else if (price !== null) {
-          updates.push(
-            supabase.from('pricing_tiers').insert({
-              business_id: businessId,
-              product_id: product.id,
-              capacity_option_id: capacityId,
-              tier,
-              price,
-              is_active: true,
-            }).then(r => r)
-          )
-        }
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to save')
       }
 
-      const results = await Promise.all(updates)
-      const errors = results.filter(r => r.error)
-      if (errors.length > 0) throw new Error('Some updates failed')
-
-      const { data: updatedTiers } = await supabase
-        .from('pricing_tiers')
-        .select('*')
-        .eq('business_id', businessId)
-        .eq('product_id', product.id)
-
-      if (updatedTiers) setLocalTiers(updatedTiers)
-      setPendingChanges(new Map())
-      toast.success(`${pendingChanges.size} price${pendingChanges.size > 1 ? 's' : ''} updated`)
-    } catch {
-      toast.error('Failed to save prices')
+      // Reconcile with server response to replace optimistic IDs with real ones
+      const data = await res.json()
+      if (data.tiers) setLocalTiers(data.tiers)
+      toast.success(`${count} price${count > 1 ? 's' : ''} updated`)
+    } catch (err) {
+      console.error('[handleSaveAll]', err)
+      // Rollback
+      setLocalTiers(prevTiers)
+      // Restore pending changes so user can retry
+      const restored = new Map<string, number | null>()
+      for (const change of changes) {
+        restored.set(makeKey(change.capacityId, change.tier), change.price)
+      }
+      setPendingChanges(restored)
+      toast.error('Failed to save prices — changes restored')
     } finally {
       setIsSaving(false)
     }
@@ -198,10 +227,16 @@ export function PricingGridComponent({
             Preview Widget
           </Button>
 
-          {!isService && pendingChanges.size > 0 && (
-            <Button onClick={handleSaveAll} disabled={isSaving} size="sm">
-              {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Save {pendingChanges.size} Change{pendingChanges.size > 1 ? 's' : ''}
+          {!isService && (pendingChanges.size > 0 || isSaving) && (
+            <Button onClick={handleSaveAll} disabled={isSaving} size="sm" className="min-w-[120px]">
+              {isSaving ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>Save {pendingChanges.size} Change{pendingChanges.size > 1 ? 's' : ''}</>
+              )}
             </Button>
           )}
         </div>
@@ -323,7 +358,7 @@ export function PricingGridComponent({
                         key={`${tier}|${capacity.id}`}
                         className={`p-2 ${isDisabled ? 'opacity-50' : ''} ${isLastRow && isLastCol ? 'rounded-br-lg' : ''}`}
                       >
-                        <PricingCell
+                         <PricingCell
                           price={price}
                           capacityId={capacity.id}
                           tier={tier}

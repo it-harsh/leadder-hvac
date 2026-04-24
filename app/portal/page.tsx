@@ -1,4 +1,4 @@
-import { createClient, getUser } from '@/lib/supabase/server'
+import { getPortalBusiness } from '@/lib/portal/get-portal-business'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,20 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Calculator, Users, Code, ArrowRight, TrendingUp } from 'lucide-react'
 
 export default async function PortalPage() {
-  const user = await getUser()
-
-  if (!user) {
-    redirect('/auth/login')
-  }
-
-  const supabase = await createClient()
-
-  // Fetch the user's business (shared with layout via cached client)
-  const { data: business } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('owner_id', user.id)
-    .single()
+  const { business, supabase } = await getPortalBusiness()
 
   if (!business) {
     redirect('/auth/login')

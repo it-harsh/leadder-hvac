@@ -17,8 +17,6 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { LogOut, User as UserIcon, Building, Sun, Moon } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
-const supabase = createClient()
-
 interface PortalHeaderProps {
   user: User
   business: Business
@@ -33,6 +31,7 @@ const PAGE_TITLES: Record<string, string> = {
 }
 
 export function PortalHeader({ user, business }: PortalHeaderProps) {
+  const supabase = createClient()
   const router = useRouter()
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
@@ -55,7 +54,7 @@ export function PortalHeader({ user, business }: PortalHeaderProps) {
     .slice(0, 2)
 
   return (
-    <header className="h-14 border-b border-border bg-[#f5f6fa] dark:bg-background backdrop-blur flex items-center justify-between px-6">
+    <header className="sticky top-0 z-30 h-14 border-b border-border bg-[#f5f6fa] dark:bg-background backdrop-blur flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
       </div>

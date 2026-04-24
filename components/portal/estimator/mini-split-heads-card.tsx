@@ -6,11 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { BusinessProductConfig } from '@/lib/types/database'
-
-const supabase = createClient()
 
 interface MiniSplitHeadsCardProps {
   businessId: string
@@ -37,38 +34,32 @@ export function MiniSplitHeadsCard({
     : `$${exampleBase.toLocaleString()}`
 
   async function save() {
+    const fields = {
+      heads_2_additional_cost: parseFloat(heads2) || 0,
+      heads_3_additional_cost: parseFloat(heads3) || 0,
+      heads_4plus_additional_cost: parseFloat(heads4plus) || 0,
+    }
+
+    // Optimistic update
+    onConfigUpdate({
+      ...(productConfig ?? { id: 'optimistic', business_id: businessId, product_id: productId, is_enabled: true, price_range_pct: 0, multi_unit_discount_pct: 0, created_at: '', updated_at: '' }),
+      ...fields,
+    } as BusinessProductConfig)
+
     setSaving(true)
     try {
-      const payload = {
-        business_id: businessId,
-        product_id: productId,
-        heads_2_additional_cost: parseFloat(heads2) || 0,
-        heads_3_additional_cost: parseFloat(heads3) || 0,
-        heads_4plus_additional_cost: parseFloat(heads4plus) || 0,
-        updated_at: new Date().toISOString(),
-      }
-
-      let result
-      if (productConfig) {
-        result = await supabase
-          .from('business_product_configs')
-          .update(payload)
-          .eq('id', productConfig.id)
-          .select()
-          .single()
-      } else {
-        result = await supabase
-          .from('business_product_configs')
-          .insert({ ...payload, is_enabled: true, price_range_pct: 0, multi_unit_discount_pct: 0 })
-          .select()
-          .single()
-      }
-
-      if (result.error) throw result.error
-      onConfigUpdate(result.data)
+      const res = await fetch('/api/portal/product-config-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, ...fields }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      const { config } = await res.json()
+      onConfigUpdate(config)
       toast.success('Heads pricing saved')
     } catch (err) {
       console.error('Error saving heads pricing:', err)
+      if (productConfig) onConfigUpdate(productConfig)
       toast.error('Failed to save heads pricing')
     } finally {
       setSaving(false)
@@ -86,70 +77,36 @@ export function MiniSplitHeadsCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
-          {/* 1 Head — display only */}
           <div className="space-y-1">
             <Label className="text-muted-foreground">1 Head (No Additional Cost)</Label>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground">$</span>
-              <Input
-                type="number"
-                value="0"
-                disabled
-                className="bg-muted/40 opacity-60"
-              />
+              <Input type="number" value="0" disabled className="bg-muted/40 opacity-60" />
             </div>
           </div>
-
-          {/* 2 Heads */}
           <div className="space-y-1">
             <Label>2 Heads Additional Cost ($)</Label>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground">$</span>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0"
-                value={heads2}
-                onChange={e => setHeads2(e.target.value)}
-              />
+              <Input type="number" min="0" step="0.01" placeholder="0" value={heads2} onChange={e => setHeads2(e.target.value)} />
             </div>
           </div>
-
-          {/* 3 Heads */}
           <div className="space-y-1">
             <Label>3 Heads Additional Cost ($)</Label>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground">$</span>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0"
-                value={heads3}
-                onChange={e => setHeads3(e.target.value)}
-              />
+              <Input type="number" min="0" step="0.01" placeholder="0" value={heads3} onChange={e => setHeads3(e.target.value)} />
             </div>
           </div>
-
-          {/* 4+ Heads */}
           <div className="space-y-1">
             <Label>4+ Heads Additional Cost ($)</Label>
             <div className="flex items-center gap-1">
               <span className="text-sm text-muted-foreground">$</span>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0"
-                value={heads4plus}
-                onChange={e => setHeads4plus(e.target.value)}
-              />
+              <Input type="number" min="0" step="0.01" placeholder="0" value={heads4plus} onChange={e => setHeads4plus(e.target.value)} />
             </div>
           </div>
         </div>
 
-        {/* Example */}
         <div className="rounded-md bg-muted/40 border border-border px-4 py-3 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Example: </span>
           If base price is ${exampleBase.toLocaleString()} and 2 heads additional cost is ${heads2Num > 0 ? heads2Num.toLocaleString() : '250'},
@@ -159,7 +116,7 @@ export function MiniSplitHeadsCard({
 
         <Button onClick={save} disabled={saving} size="sm">
           {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          Save
+          Save Heads Pricing
         </Button>
       </CardContent>
     </Card>

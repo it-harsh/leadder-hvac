@@ -18,13 +18,12 @@ import { Mail, Phone, MapPin, Users, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDistanceToNow } from 'date-fns'
 
-const supabase = createClient()
-
 interface LeadsTableProps {
   leads: Lead[]
 }
 
 export function LeadsTable({ leads: initialLeads }: LeadsTableProps) {
+  const supabase = createClient()
   const [leads, setLeads] = useState<Lead[]>(initialLeads)
   const [search, setSearch] = useState('')
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())

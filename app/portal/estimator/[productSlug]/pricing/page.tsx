@@ -1,4 +1,4 @@
-import { createClient, getUser } from '@/lib/supabase/server'
+import { getPortalBusiness } from '@/lib/portal/get-portal-business'
 import { redirect, notFound } from 'next/navigation'
 import { PricingGridComponent } from '@/components/portal/estimator/pricing-grid'
 
@@ -10,22 +10,10 @@ interface PricingPageProps {
 
 export default async function PricingPage({ params }: PricingPageProps) {
   const { productSlug } = await params
-  
-  const user = await getUser()
-  if (!user) {
-    redirect('/auth/login')
-  }
 
-  const supabase = await createClient()
+  const { business, supabase } = await getPortalBusiness()
 
-  // Fetch the user's business
-  const { data: business, error: businessError } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('owner_id', user.id)
-    .single()
-
-  if (businessError || !business) {
+  if (!business) {
     redirect('/auth/login')
   }
 

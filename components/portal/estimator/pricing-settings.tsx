@@ -6,11 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { BusinessProductConfig } from '@/lib/types/database'
-
-const supabase = createClient()
 
 interface PricingSettingsProps {
   businessId: string
@@ -25,7 +22,6 @@ export function PricingSettings({
   productConfig,
   onConfigUpdate,
 }: PricingSettingsProps) {
-
   const [priceRangePct, setPriceRangePct] = useState(
     productConfig?.price_range_pct?.toString() ?? '10'
   )
@@ -35,49 +31,35 @@ export function PricingSettings({
   const [saving, setSaving] = useState(false)
 
   async function save() {
+    const pct = parseFloat(priceRangePct) || 0
+    const discount = parseFloat(multiUnitDiscount) || 0
+
+    if (pct < 0 || pct > 100) { toast.error('Price range must be between 0 and 100'); return }
+    if (discount < 0 || discount > 100) { toast.error('Discount must be between 0 and 100'); return }
+
+    // Optimistic update
+    const optimistic = {
+      ...(productConfig ?? { id: 'optimistic', business_id: businessId, product_id: productId, is_enabled: true, created_at: '', updated_at: '' }),
+      price_range_pct: pct,
+      multi_unit_discount_pct: discount,
+    } as BusinessProductConfig
+    onConfigUpdate(optimistic)
+
     setSaving(true)
     try {
-      const pct = parseFloat(priceRangePct) || 0
-      const discount = parseFloat(multiUnitDiscount) || 0
-
-      if (pct < 0 || pct > 100) {
-        toast.error('Price range must be between 0 and 100')
-        return
-      }
-      if (discount < 0 || discount > 100) {
-        toast.error('Discount must be between 0 and 100')
-        return
-      }
-
-      const payload = {
-        business_id: businessId,
-        product_id: productId,
-        price_range_pct: pct,
-        multi_unit_discount_pct: discount,
-        updated_at: new Date().toISOString(),
-      }
-
-      let result
-      if (productConfig) {
-        result = await supabase
-          .from('business_product_configs')
-          .update(payload)
-          .eq('id', productConfig.id)
-          .select()
-          .single()
-      } else {
-        result = await supabase
-          .from('business_product_configs')
-          .insert({ ...payload, is_enabled: true })
-          .select()
-          .single()
-      }
-
-      if (result.error) throw result.error
-      onConfigUpdate(result.data)
+      const res = await fetch('/api/portal/product-config-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId, price_range_pct: pct, multi_unit_discount_pct: discount }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      const { config } = await res.json()
+      onConfigUpdate(config)
       toast.success('Settings saved')
     } catch (err) {
       console.error('Error saving settings:', err)
+      // Rollback
+      if (productConfig) onConfigUpdate(productConfig)
       toast.error('Failed to save settings')
     } finally {
       setSaving(false)
@@ -102,20 +84,10 @@ export function PricingSettings({
         <CardTitle className="text-base font-semibold">Pricing Settings</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Price Range */}
         <div className="space-y-2">
           <Label>Price Range Percentage</Label>
           <div className="flex gap-2 items-center">
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="0"
-              value={priceRangePct}
-              onChange={e => setPriceRangePct(e.target.value)}
-              className="max-w-[120px]"
-            />
+            <Input type="number" min="0" max="100" step="0.01" placeholder="0" value={priceRangePct} onChange={e => setPriceRangePct(e.target.value)} className="max-w-[120px]" />
             <span className="text-sm text-muted-foreground">%</span>
           </div>
           <p className="text-xs text-muted-foreground">
@@ -123,25 +95,13 @@ export function PricingSettings({
           </p>
         </div>
 
-        {/* Multi-Unit Discount */}
         <div className="space-y-2">
           <Label>Multi-Unit Discount</Label>
           <div className="flex gap-2 items-center">
-            <Input
-              type="number"
-              min="0"
-              max="100"
-              step="0.01"
-              placeholder="0"
-              value={multiUnitDiscount}
-              onChange={e => setMultiUnitDiscount(e.target.value)}
-              className="max-w-[120px]"
-            />
+            <Input type="number" min="0" max="100" step="0.01" placeholder="0" value={multiUnitDiscount} onChange={e => setMultiUnitDiscount(e.target.value)} className="max-w-[120px]" />
             <span className="text-sm text-muted-foreground">% off when qty &gt; 1</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {discountExample}
-          </p>
+          <p className="text-xs text-muted-foreground">{discountExample}</p>
         </div>
 
         <Button onClick={save} disabled={saving} size="sm">

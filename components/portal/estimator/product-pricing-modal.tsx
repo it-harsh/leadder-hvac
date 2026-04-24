@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { Product, CapacityOption, PricingTier } from '@/lib/types/database'
-import { createClient } from '@/lib/supabase/client'
 import {
   Dialog,
   DialogContent,
@@ -75,7 +74,6 @@ export function ProductPricingModal({
   const [selectedCapacity, setSelectedCapacity] = useState<CapacityOption | null>(null)
   const [formData, setFormData] = useState<TierFormData>(defaultTierData)
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   const hasCapacities = product.capacity_options && product.capacity_options.length > 0
   const isService = product.category === 'service'
@@ -145,94 +143,48 @@ export function ProductPricingModal({
     setSaving(true)
     try {
       if (isService) {
-        // Handle service pricing (simple)
-        await supabase
-          .from('pricing_tiers')
-          .delete()
-          .eq('business_id', businessId)
-          .eq('product_id', product.id)
+        const tiersToUpsert = servicePrice && parseFloat(servicePrice) > 0
+          ? [{ capacity_option_id: null, tier: 'good', price: parseFloat(servicePrice), warranty_years: null, features: [], scope_of_work: serviceDescription || null }]
+          : []
 
-        if (servicePrice && parseFloat(servicePrice) > 0) {
-          const { data: newTier, error } = await supabase
-            .from('pricing_tiers')
-            .insert({
-              business_id: businessId,
-              product_id: product.id,
-              capacity_option_id: null,
-              tier: 'good',
-              price: parseFloat(servicePrice),
-              warranty_years: null,
-              features: [],
-              scope_of_work: serviceDescription || null,
-            })
-            .select()
-            .single()
-
-          if (error) throw error
-          onTiersUpdated(newTier ? [newTier] : [])
-        } else {
-          onTiersUpdated([])
-        }
-
+        const res = await fetch('/api/portal/service-pricing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'save', productId: product.id, capacityId: null, tiers: tiersToUpsert }),
+        })
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+        const { tiers: newTiers } = await res.json()
+        onTiersUpdated(newTiers ?? [])
         toast.success('Service pricing saved successfully')
         onClose()
         return
       }
 
       const capacityId = selectedCapacity?.id || null
-      const tiersToUpsert: Array<{
-        business_id: string
-        product_id: string
-        capacity_option_id: string | null
-        tier: string
-        price: number
-        warranty_years: number | null
-        features: string[]
-        scope_of_work: string | null
-      }> = []
-
-      for (const tierKey of ['good', 'better', 'best'] as const) {
-        const data = formData[tierKey]
-        if (data.price && parseFloat(data.price) > 0) {
-          tiersToUpsert.push({
-            business_id: businessId,
-            product_id: product.id,
+      const tiersToUpsert = (['good', 'better', 'best'] as const)
+        .filter(tierKey => formData[tierKey].price && parseFloat(formData[tierKey].price) > 0)
+        .map(tierKey => {
+          const data = formData[tierKey]
+          return {
             capacity_option_id: capacityId,
             tier: tierKey,
             price: parseFloat(data.price),
             warranty_years: data.warranty ? parseInt(data.warranty) : null,
-            features: data.features.split('\n').filter(f => f.trim()),
+            features: data.features.split('\n').filter((f: string) => f.trim()),
             scope_of_work: data.scope || null,
-          })
-        }
-      }
+          }
+        })
 
-      // Delete existing tiers for this product/capacity
-      await supabase
-        .from('pricing_tiers')
-        .delete()
-        .eq('business_id', businessId)
-        .eq('product_id', product.id)
-        .eq('capacity_option_id', capacityId)
+      const res = await fetch('/api/portal/service-pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save', productId: product.id, capacityId, tiers: tiersToUpsert }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+      const { tiers: newTiers } = await res.json()
 
-      // Insert new tiers
-      if (tiersToUpsert.length > 0) {
-        const { data: newTiers, error } = await supabase
-          .from('pricing_tiers')
-          .insert(tiersToUpsert)
-          .select()
-
-        if (error) throw error
-
-        // Update parent with new tiers
-        const otherTiers = existingTiers.filter(t => t.capacity_option_id !== capacityId)
-        onTiersUpdated([...otherTiers, ...(newTiers || [])])
-      } else {
-        // No tiers to save, just remove existing
-        const otherTiers = existingTiers.filter(t => t.capacity_option_id !== capacityId)
-        onTiersUpdated(otherTiers)
-      }
-
+      const otherTiers = existingTiers.filter(t => t.capacity_option_id !== capacityId)
+      onTiersUpdated([...otherTiers, ...(newTiers ?? [])])
       toast.success('Pricing saved successfully')
     } catch (error) {
       console.error('Error saving pricing:', error)
@@ -245,34 +197,26 @@ export function ProductPricingModal({
   const handleDelete = async () => {
     setSaving(true)
     try {
-      if (isService) {
-        await supabase
-          .from('pricing_tiers')
-          .delete()
-          .eq('business_id', businessId)
-          .eq('product_id', product.id)
+      const capacityId = isService ? null : (selectedCapacity?.id || null)
 
+      const res = await fetch('/api/portal/service-pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', productId: product.id, capacityId }),
+      })
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Failed') }
+
+      if (isService) {
         onTiersUpdated([])
         setServicePrice('')
         setServiceDescription('')
         toast.success('Service pricing deleted')
-        return
+      } else {
+        const otherTiers = existingTiers.filter(t => t.capacity_option_id !== capacityId)
+        onTiersUpdated(otherTiers)
+        setFormData(defaultTierData)
+        toast.success('Pricing deleted')
       }
-
-      const capacityId = selectedCapacity?.id || null
-      
-      await supabase
-        .from('pricing_tiers')
-        .delete()
-        .eq('business_id', businessId)
-        .eq('product_id', product.id)
-        .eq('capacity_option_id', capacityId)
-
-      const otherTiers = existingTiers.filter(t => t.capacity_option_id !== capacityId)
-      onTiersUpdated(otherTiers)
-      setFormData(defaultTierData)
-      
-      toast.success('Pricing deleted')
     } catch (error) {
       console.error('Error deleting pricing:', error)
       toast.error('Failed to delete pricing')

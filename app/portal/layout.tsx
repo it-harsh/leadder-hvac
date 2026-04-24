@@ -1,7 +1,11 @@
-import { createClient, getUser } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
+import { getUser, isPlatformAdmin, createServiceClient, createClient } from '@/lib/supabase/server'
 import { PortalSidebar } from '@/components/portal/sidebar'
 import { PortalHeader } from '@/components/portal/header'
+import { ImpersonationBanner } from '@/components/admin/impersonation-banner'
+
+const IMPERSONATION_COOKIE = 'leadder_impersonating_business_id'
 
 export default async function PortalLayout({
   children,
@@ -14,9 +18,66 @@ export default async function PortalLayout({
     redirect('/auth/login')
   }
 
+  const cookieStore = await cookies()
+  const impersonatingId = cookieStore.get(IMPERSONATION_COOKIE)?.value
+
+  // ── Impersonation path ──────────────────────────────────────────────────────
+  if (impersonatingId) {
+    // Re-verify: caller must still be a platform admin
+    const isAdmin = await isPlatformAdmin(user.id)
+    if (!isAdmin) {
+      // Clear stale cookie + boot to login
+      redirect('/auth/login')
+    }
+
+    const serviceClient = await createServiceClient()
+
+    // Check support_access is still enabled (revocation is immediate)
+    const { data: settings } = await serviceClient
+      .from('business_settings')
+      .select('support_access_enabled')
+      .eq('business_id', impersonatingId)
+      .maybeSingle()
+
+    if (!settings?.support_access_enabled) {
+      // Access revoked — clear cookie and redirect back to admin
+      redirect('/admin')
+    }
+
+    // Resolve the impersonated business
+    const { data: business } = await serviceClient
+      .from('businesses')
+      .select('*')
+      .eq('id', impersonatingId)
+      .maybeSingle()
+
+    if (!business) {
+      redirect('/admin')
+    }
+
+    console.log('[portal/layout] IMPERSONATING business:', business.id, 'as admin:', user.id)
+
+    return (
+      <div className="min-h-screen bg-background">
+        <ImpersonationBanner businessName={business.name} />
+        <PortalSidebar business={business} isAdmin={false} />
+        <div className="ml-64 flex flex-col min-h-screen">
+          <PortalHeader user={user} business={business} />
+          <main className="flex-1 p-8 bg-[#f5f6fa] dark:bg-background">
+            {children}
+          </main>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Normal path ─────────────────────────────────────────────────────────────
+
+  const isAdmin = await isPlatformAdmin(user.id)
+
   const supabase = await createClient()
 
-  // Fetch the user's business (take the most recent if multiple exist)
+  // Fetch the user's business (most recent if multiple)
   const { data: businesses, error: bizError } = await supabase
     .from('businesses')
     .select('*')
@@ -26,18 +87,19 @@ export default async function PortalLayout({
 
   const business = businesses?.[0]
 
-  console.log('[portal/layout] user.id:', user.id, '| business:', business?.id ?? null, '| error:', bizError?.message ?? null)
+  console.log('[portal/layout] user.id:', user.id, '| business:', business?.id ?? null, '| isAdmin:', isAdmin, '| error:', bizError?.message ?? null)
 
   if (!business) {
-    redirect('/auth/sign-up')
+    // Admins with no business go to /admin, regular users to sign-up
+    redirect(isAdmin ? '/admin' : '/auth/sign-up')
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <PortalSidebar business={business} />
-      <div className="flex-1 flex flex-col min-w-0">
+    <div className="min-h-screen bg-background">
+      <PortalSidebar business={business} isAdmin={isAdmin} />
+      <div className="ml-64 flex flex-col min-h-screen">
         <PortalHeader user={user} business={business} />
-        <main className="flex-1 p-8 overflow-auto bg-[#f5f6fa] dark:bg-background">
+        <main className="flex-1 p-8 bg-[#f5f6fa] dark:bg-background">
           {children}
         </main>
       </div>

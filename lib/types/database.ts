@@ -101,8 +101,16 @@ export interface BusinessSettings {
   ghl_location_id: string | null
   ghl_pipeline_id: string | null
   ghl_stage_id: string | null
+  support_access_enabled: boolean
   created_at: string
   updated_at: string
+}
+
+export interface PlatformAdmin {
+  id: string
+  user_id: string
+  created_by: string | null
+  created_at: string
 }
 
 export interface BusinessProductConfig {

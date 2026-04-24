@@ -169,18 +169,20 @@ export function ProductGrid({ products, existingTiers, productConfigs, businessI
           <p className="text-xs text-muted-foreground line-clamp-2 mb-3">
             {product.description}
           </p>
-          <Button
-            variant={configured ? "secondary" : "default"}
-            size="sm"
-            className={`w-full ${configured ? 'cursor-pointer' : ''}`}
-            disabled={!enabled}
-            onClick={(e) => {
-              e.stopPropagation()
-              handleConfigureProduct(product)
-            }}
-          >
-            {configured ? 'Edit Pricing' : 'Configure'}
-          </Button>
+          <div title={!enabled ? 'Enable product to configure pricing' : undefined}>
+            <Button
+              variant={configured ? 'secondary' : 'default'}
+              size="sm"
+              className="w-full cursor-pointer"
+              disabled={!enabled}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleConfigureProduct(product)
+              }}
+            >
+              {configured ? 'Edit Pricing' : 'Configure'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     )

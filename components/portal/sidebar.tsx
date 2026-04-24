@@ -4,11 +4,12 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Business } from '@/lib/types/database'
-import { Calculator, Users, Settings, Code, Building2, LayoutDashboard } from 'lucide-react'
+import { Calculator, Users, Settings, Code, Building2, LayoutDashboard, ShieldCheck } from 'lucide-react'
 import Image from 'next/image'
 
 interface PortalSidebarProps {
   business: Business
+  isAdmin?: boolean
 }
 
 const navItems = [
@@ -44,11 +45,11 @@ const navItems = [
   },
 ]
 
-export function PortalSidebar({ business }: PortalSidebarProps) {
+export function PortalSidebar({ business, isAdmin = false }: PortalSidebarProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white dark:bg-sidebar border-r border-sidebar-border flex flex-col">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-white dark:bg-sidebar border-r border-sidebar-border flex flex-col z-40">
       {/* Logo */}
       <div className="p-4 flex justify-center">
         <Link href="/portal">
@@ -81,6 +82,17 @@ export function PortalSidebar({ business }: PortalSidebarProps) {
             </Link>
           )
         })}
+
+        {/* Admin Panel link — only shown to platform admins in non-impersonation sessions */}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent/50 mt-4 border-t border-sidebar-border pt-4"
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span className="font-medium">Admin Panel</span>
+          </Link>
+        )}
       </nav>
 
       {/* Footer */}

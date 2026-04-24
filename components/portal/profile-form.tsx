@@ -10,13 +10,12 @@ import { Label } from '@/components/ui/label'
 import { Loader2, Save, Key } from 'lucide-react'
 import { toast } from 'sonner'
 
-const supabase = createClient()
-
 interface ProfileFormProps {
   user: User
 }
 
 export function ProfileForm({ user }: ProfileFormProps) {
+  const supabase = createClient()
   const [changingPassword, setChangingPassword] = useState(false)
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')

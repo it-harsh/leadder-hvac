@@ -52,6 +52,17 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (
+    // if the user is not logged in and the admin paths are accessed, redirect to the login page
+    // admin identity check (isPlatformAdmin) is handled in app/admin/layout.tsx, not here
+    request.nextUrl.pathname.startsWith('/admin') &&
+    !user
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/login'
+    return NextResponse.redirect(url)
+  }
+
   // If user is logged in and tries to access auth pages, redirect to portal
   if (
     user &&
