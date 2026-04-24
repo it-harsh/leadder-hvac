@@ -58,7 +58,7 @@ export function SettingsForm({ business, settings, readOnly = false }: SettingsF
 
   // Support access
   const [supportAccessEnabled, setSupportAccessEnabled] = useState(
-    settings?.support_access_enabled ?? false
+    settings?.support_access_enabled ?? true
   )
 
   const handleSave = async () => {
@@ -351,7 +351,7 @@ export function SettingsForm({ business, settings, readOnly = false }: SettingsF
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Off by default. Leadder staff cannot access your account without this being enabled.
+              Enabled by default. You can revoke access at any time and it takes effect immediately.
             </p>
           </CardContent>
         </Card>
