@@ -545,7 +545,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const formatPrice = (price: number): string => {
     const cfg = selectedProduct ? getProductConfig(selectedProduct.id) : undefined
-    const pct = cfg?.price_range_pct || data.settings.price_range_pct || 10
+    const pct = cfg?.price_range_pct ?? data.settings.price_range_pct ?? 0
     const base = calcAdjustedPrice(price)
     if (pct > 0) {
       const high = Math.round(base * (1 + pct / 100))
@@ -557,7 +557,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const formatServicePrice = (productId: string): string | null => {
     const tier = data.pricingTiers.find(t => t.product_id === productId && t.capacity_option_id === null)
     if (!tier) return null
-    const pct = data.settings.price_range_pct || 10
+    const pct = data.settings.price_range_pct ?? 0
     if (pct > 0) return `$${tier.price.toLocaleString()} – $${Math.round(tier.price * (1 + pct / 100)).toLocaleString()}`
     return `$${tier.price.toLocaleString()}`
   }

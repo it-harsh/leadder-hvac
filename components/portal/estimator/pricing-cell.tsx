@@ -21,6 +21,7 @@ export function PricingCell({
   const [isEditing, setIsEditing] = useState(false)
   const [value, setValue] = useState(price?.toString() || '')
   const inputRef = useRef<HTMLInputElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -41,15 +42,10 @@ export function PricingCell({
 
   const validatePrice = (val: string): number | null => {
     if (!val || val.trim() === '') return null
-    
     const num = parseFloat(val)
-    
-    // Validation rules
     if (isNaN(num)) return null
     if (num < 0) return null
     if (num > 999999.99) return null
-    
-    // Round to 2 decimals
     return Math.round(num * 100) / 100
   }
 
@@ -61,18 +57,36 @@ export function PricingCell({
     setIsEditing(false)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault()
       handleApply()
+      // Return focus to button so user can Tab to next cell
+      setTimeout(() => buttonRef.current?.focus(), 0)
+    } else if (e.key === 'Tab') {
+      // Apply value and let Tab move naturally to the next cell's button
+      handleApply()
+      // Don't prevent default — Tab will move focus naturally
     } else if (e.key === 'Escape') {
       setValue(price?.toString() || '')
       setIsEditing(false)
+      setTimeout(() => buttonRef.current?.focus(), 0)
     }
   }
 
-  const handleBlur = () => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    // Only apply on blur if not tabbing (tab is handled in keydown)
     handleApply()
+  }
+
+  const handleButtonKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (disabled) return
+    // Enter or Space opens editing (Space is default for buttons, but also handle Enter explicitly)
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      setIsEditing(true)
+      setValue(price?.toString() || '')
+    }
   }
 
   if (isEditing) {
@@ -83,9 +97,9 @@ export function PricingCell({
           type="number"
           value={value}
           onChange={(e) => {
-              setValue(e.target.value)
-              onChange(capacityId, tier, validatePrice(e.target.value))
-            }}
+            setValue(e.target.value)
+            onChange(capacityId, tier, validatePrice(e.target.value))
+          }}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           className="w-full px-2 py-1 text-center text-lg font-semibold border-2 border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
@@ -100,14 +114,16 @@ export function PricingCell({
 
   return (
     <button
+      ref={buttonRef}
       onClick={handleClick}
+      onKeyDown={handleButtonKeyDown}
       disabled={disabled}
       className={`group relative w-full px-2 py-2 text-center rounded transition-all border ${
         disabled
           ? 'cursor-not-allowed border-transparent'
           : price !== null
-            ? 'border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer'
-            : 'border-dashed border-border hover:border-primary hover:bg-primary/5 cursor-pointer'
+            ? 'border-transparent hover:border-primary/40 hover:bg-primary/5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary/40'
+            : 'border-dashed border-border hover:border-primary hover:bg-primary/5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'
       }`}
     >
       {price !== null ? (

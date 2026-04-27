@@ -23,7 +23,7 @@ export function PricingSettings({
   onConfigUpdate,
 }: PricingSettingsProps) {
   const [priceRangePct, setPriceRangePct] = useState(
-    productConfig?.price_range_pct?.toString() ?? '10'
+    productConfig?.price_range_pct?.toString() ?? '0'
   )
   const [multiUnitDiscount, setMultiUnitDiscount] = useState(
     productConfig?.multi_unit_discount_pct?.toString() ?? '0'
