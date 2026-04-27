@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Product, CapacityOption, PricingTier, TierSystemConfiguration, BusinessProductConfig } from '@/lib/types/database'
 import { getSqftRange } from '@/lib/utils/hvac'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -47,6 +47,25 @@ export function PricingGridComponent({
   const [togglingCapacity, setTogglingCapacity] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [showPricingModal, setShowPricingModal] = useState(false)
+
+  // Refs for programmatic focus — cellRefs[tierIndex][capIndex]
+  const cellRefs = useRef<Record<string, (() => void) | null>>({})
+  const registerCell = (key: string, openFn: () => void) => {
+    cellRefs.current[key] = openFn
+  }
+  const focusNextCell = (tierIndex: number, capIndex: number) => {
+    const enabledCaps = localCapacities.filter(c => c.is_enabled)
+    // Move across columns first, then next row
+    let nextTierIdx = tierIndex
+    let nextCapIdx = capIndex + 1
+    if (nextCapIdx >= enabledCaps.length) {
+      nextCapIdx = 0
+      nextTierIdx = tierIndex + 1
+    }
+    if (nextTierIdx >= tierOrder.length) return // last cell, do nothing
+    const nextKey = `${tierOrder[nextTierIdx]}|${enabledCaps[nextCapIdx]?.id}`
+    cellRefs.current[nextKey]?.()
+  }
 
   const tierOrder: ('good' | 'better' | 'best')[] = ['good', 'better', 'best']
   const tierColors = {
@@ -353,17 +372,22 @@ export function PricingGridComponent({
                     const isDisabled = !capacity.is_enabled
                     const isLastRow = tierIndex === tierOrder.length - 1
                     const isLastCol = capIndex === localCapacities.length - 1
+                    const cellKey = `${tier}|${capacity.id}`
+                    const enabledCapIndex = localCapacities.filter(c => c.is_enabled).findIndex(c => c.id === capacity.id)
                     return (
                       <td
-                        key={`${tier}|${capacity.id}`}
+                        key={cellKey}
                         className={`p-2 ${isDisabled ? 'opacity-50' : ''} ${isLastRow && isLastCol ? 'rounded-br-lg' : ''}`}
                       >
-                         <PricingCell
+                        <PricingCell
                           price={price}
                           capacityId={capacity.id}
                           tier={tier}
                           disabled={isDisabled}
                           onChange={handlePriceChange}
+                          cellKey={cellKey}
+                          onRegister={registerCell}
+                          onTab={() => focusNextCell(tierIndex, enabledCapIndex)}
                         />
                       </td>
                     )

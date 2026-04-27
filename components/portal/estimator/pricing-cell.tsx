@@ -9,6 +9,9 @@ interface PricingCellProps {
   tier: 'good' | 'better' | 'best'
   disabled?: boolean
   onChange: (capacityId: string, tier: 'good' | 'better' | 'best', price: number | null) => void
+  cellKey?: string
+  onRegister?: (key: string, openFn: () => void) => void
+  onTab?: () => void
 }
 
 export function PricingCell({
@@ -16,12 +19,27 @@ export function PricingCell({
   capacityId,
   tier,
   disabled = false,
-  onChange
+  onChange,
+  cellKey,
+  onRegister,
+  onTab,
 }: PricingCellProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [value, setValue] = useState(price?.toString() || '')
   const inputRef = useRef<HTMLInputElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
+
+  // Register this cell's open function with the parent grid
+  useEffect(() => {
+    if (cellKey && onRegister) {
+      onRegister(cellKey, () => {
+        if (!disabled) {
+          setValue(price?.toString() || '')
+          setIsEditing(true)
+        }
+      })
+    }
+  }, [cellKey, onRegister, disabled, price])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -31,7 +49,9 @@ export function PricingCell({
   }, [isEditing])
 
   useEffect(() => {
-    setValue(price?.toString() || '')
+    if (!isEditing) {
+      setValue(price?.toString() || '')
+    }
   }, [price])
 
   const handleClick = () => {
@@ -61,12 +81,17 @@ export function PricingCell({
     if (e.key === 'Enter') {
       e.preventDefault()
       handleApply()
-      // Return focus to button so user can Tab to next cell
       setTimeout(() => buttonRef.current?.focus(), 0)
     } else if (e.key === 'Tab') {
-      // Apply value and let Tab move naturally to the next cell's button
-      handleApply()
-      // Don't prevent default — Tab will move focus naturally
+      e.preventDefault()
+      // Apply current value first
+      const validatedPrice = validatePrice(value)
+      if (validatedPrice !== price) {
+        onChange(capacityId, tier, validatedPrice)
+      }
+      setIsEditing(false)
+      // Open next cell immediately
+      setTimeout(() => onTab?.(), 0)
     } else if (e.key === 'Escape') {
       setValue(price?.toString() || '')
       setIsEditing(false)
@@ -74,14 +99,12 @@ export function PricingCell({
     }
   }
 
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    // Only apply on blur if not tabbing (tab is handled in keydown)
+  const handleBlur = () => {
     handleApply()
   }
 
   const handleButtonKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
     if (disabled) return
-    // Enter or Space opens editing (Space is default for buttons, but also handle Enter explicitly)
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault()
       setIsEditing(true)
