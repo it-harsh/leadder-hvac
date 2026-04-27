@@ -544,12 +544,16 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   }
 
   const formatPrice = (price: number): string => {
-    const cfg = selectedProduct ? getProductConfig(selectedProduct.id) : undefined
-    const pct = cfg?.price_range_pct ?? data.settings.price_range_pct ?? 0
     const base = calcAdjustedPrice(price)
-    if (pct > 0) {
-      const high = Math.round(base * (1 + pct / 100))
-      return `$${base.toLocaleString()} – $${high.toLocaleString()}`
+    // Services always show a fixed price — no range
+    const isService = selectedProduct?.category === 'service'
+    if (!isService) {
+      const cfg = selectedProduct ? getProductConfig(selectedProduct.id) : undefined
+      const pct = cfg?.price_range_pct ?? data.settings.price_range_pct ?? 0
+      if (pct > 0) {
+        const high = Math.round(base * (1 + pct / 100))
+        return `$${base.toLocaleString()} – $${high.toLocaleString()}`
+      }
     }
     return `$${base.toLocaleString()}`
   }
@@ -557,10 +561,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const formatServicePrice = (productId: string): string | null => {
     const tier = data.pricingTiers.find(t => t.product_id === productId && t.capacity_option_id === null)
     if (!tier) return null
-    // Use product-specific config pct, fallback to global settings pct
-    const cfg = getProductConfig(productId)
-    const pct = cfg?.price_range_pct ?? data.settings.price_range_pct ?? 0
-    if (pct > 0) return `$${tier.price.toLocaleString()} – $${Math.round(tier.price * (1 + pct / 100)).toLocaleString()}`
+    // Services always show fixed price — no range
     return `$${tier.price.toLocaleString()}`
   }
 
