@@ -704,6 +704,43 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!consent) return
+
+    // ── Validation ──────────────────────────────────────────────────────────────
+    const nameVal = fullName.trim()
+    const emailVal = email.trim()
+    const phoneVal = phone.trim()
+
+    // Full name: at least 2 words, each 2+ chars, letters only (no "aaa bbb" or "a b")
+    const nameParts = nameVal.split(/\s+/).filter(Boolean)
+    if (nameParts.length < 2 || nameParts.some(p => p.length < 2) || !/^[a-zA-Z\s'-]+$/.test(nameVal)) {
+      setSubmitError('Please enter your full name (first and last).')
+      return
+    }
+
+    // Email: proper format, reject common fake patterns (test@, fake@, asdf@, etc.)
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+    if (!emailRegex.test(emailVal)) {
+      setSubmitError('Please enter a valid email address.')
+      return
+    }
+    const fakeEmailPrefixes = /^(test|fake|asdf|qwer|dummy|noreply|no-reply|example|sample|abc|xyz|foo|bar|aaa|bbb|123|111|000)/i
+    const fakeEmailDomains = /(@(test|fake|example|dummy|asdf|mailinator|guerrillamail|throwaway|temp|yopmail)\.|@(test|fake|example|dummy)\.com$)/i
+    if (fakeEmailPrefixes.test(emailVal) || fakeEmailDomains.test(emailVal)) {
+      setSubmitError('Please use a real email address.')
+      return
+    }
+
+    // Phone: strip non-digits, must be 7–15 digits, reject repeated patterns (1111111111)
+    const digitsOnly = phoneVal.replace(/\D/g, '')
+    if (digitsOnly.length < 7 || digitsOnly.length > 15) {
+      setSubmitError('Please enter a valid phone number.')
+      return
+    }
+    if (/^(\d)\1+$/.test(digitsOnly)) {
+      setSubmitError('Please enter a real phone number.')
+      return
+    }
+
     setSubmitting(true)
     setSubmitError(null)
     const parts = fullName.trim().split(' ')
