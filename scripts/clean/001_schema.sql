@@ -118,7 +118,7 @@ CREATE TABLE public.business_settings (
   widget_title             TEXT DEFAULT 'Get Your Instant Quote',
   widget_subtitle          TEXT DEFAULT 'Select your HVAC service to see pricing',
   widget_thank_you_message TEXT DEFAULT 'Thank you! We''ll be in touch soon.',
-  price_range_pct          DECIMAL(5,2) DEFAULT 0,
+  price_range_pct          DECIMAL(5,2) DEFAULT 10,
   webhook_url              TEXT,
   created_at               TIMESTAMPTZ DEFAULT NOW(),
   updated_at               TIMESTAMPTZ DEFAULT NOW()
@@ -131,7 +131,7 @@ CREATE TABLE public.business_product_configs (
   business_id                 UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
   product_id                  UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
   is_enabled                  BOOLEAN DEFAULT TRUE,
-  price_range_pct             DECIMAL(5,2) DEFAULT 0,
+  price_range_pct             DECIMAL(5,2) DEFAULT 10,
   multi_unit_discount_pct     DECIMAL(5,2) DEFAULT 0,
   attic_additional_cost       DECIMAL(10,2) DEFAULT 0,
   basement_additional_cost    DECIMAL(10,2) DEFAULT 0,
