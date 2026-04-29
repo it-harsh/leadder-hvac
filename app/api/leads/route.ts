@@ -33,9 +33,86 @@ export async function POST(request: Request) {
       priceBest,
     } = body
 
+    // Validate required fields
     if (!businessId || !firstName || !lastName || !email || !phone) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Validate field formats
+    const errors: string[] = []
+
+    // Full name validation
+    if (typeof firstName !== 'string' || firstName.trim().length < 1 || firstName.trim().length > 50) {
+      errors.push('Invalid first name')
+    }
+    if (typeof lastName !== 'string' || lastName.trim().length < 1 || lastName.trim().length > 50) {
+      errors.push('Invalid last name')
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (typeof email !== 'string' || !emailRegex.test(email.trim())) {
+      errors.push('Invalid email format')
+    }
+
+    // Phone validation
+    if (typeof phone !== 'string') {
+      errors.push('Invalid phone number')
+    } else {
+      // Extract the number part (excluding country code)
+      // Phone format is: +[country code][number]
+      const match = phone.match(/^\+(\d+)(\d+)$/)
+      let numberPart = ''
+      
+      if (match) {
+        // Valid format: extract just the number part (second group)
+        numberPart = match[2]
+      } else {
+        // If format doesn't match, use all digits
+        numberPart = phone.replace(/\D/g, '')
+      }
+      
+      // Validate the phone number part (not country code)
+      // Most countries: 7-10 digits
+      if (numberPart.length < 7 || numberPart.length > 10) {
+        errors.push('Invalid phone number')
+      }
+    }
+
+    // Optional field validations
+    if (address && (typeof address !== 'string' || address.length > 200)) {
+      errors.push('Invalid address')
+    }
+
+    if (city && (typeof city !== 'string' || city.length < 2 || city.length > 100)) {
+      errors.push('Invalid city')
+    }
+
+    if (state) {
+      const US_STATES = [
+        'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+        'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+        'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
+      ]
+      if (typeof state !== 'string' || state.length !== 2 || !US_STATES.includes(state.toUpperCase())) {
+        errors.push('Invalid state code')
+      }
+    }
+
+    if (zip) {
+      const zipRegex = /^\d{5}(-\d{4})?$/
+      if (typeof zip !== 'string' || !zipRegex.test(zip)) {
+        errors.push('Invalid ZIP code')
+      }
+    }
+
+    // If any validation errors, return them
+    if (errors.length > 0) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: errors },
         { status: 400 }
       )
     }

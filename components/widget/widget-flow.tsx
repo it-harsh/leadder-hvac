@@ -294,16 +294,24 @@ function SelectCard({ selected, onClick, icon: IconComp, title, description, chi
   )
 }
 
-function FormInput({ icon: Icon, ...props }: React.InputHTMLAttributes<HTMLInputElement> & {
+function FormInput({ icon: Icon, error, ...props }: React.InputHTMLAttributes<HTMLInputElement> & {
   icon: React.ComponentType<{ className?: string }>
+  error?: string
 }) {
   return (
-    <div className="relative">
-      <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-      <input
-        {...props}
-        className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-      />
+    <div>
+      <div className="relative">
+        <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          {...props}
+          className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
+            error 
+              ? 'border-red-300 focus:ring-red-500' 
+              : 'border-gray-200 focus:ring-indigo-500 focus:border-transparent'
+          }`}
+        />
+      </div>
+      {error && <p className="text-xs text-red-600 mt-1 ml-1">{error}</p>}
     </div>
   )
 }
@@ -345,7 +353,7 @@ const COUNTRIES = [
   { code: 'SG', dial: '+65',  flag: '🇸🇬', name: 'Singapore' },
 ]
 
-function PhoneInput({ value, onChange }: { value: string; onChange: (full: string) => void }) {
+function PhoneInput({ value, onChange, error }: { value: string; onChange: (full: string) => void; error?: string }) {
   const [selected, setSelected] = useState(COUNTRIES[0])
   const [number, setNumber] = useState('')
   const [open, setOpen] = useState(false)
@@ -378,7 +386,10 @@ function PhoneInput({ value, onChange }: { value: string; onChange: (full: strin
     : COUNTRIES
 
   return (
-    <div className="relative flex rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent" ref={ref}>
+    <div>
+      <div className="relative flex rounded-xl border bg-white focus-within:ring-2 focus-within:border-transparent ${
+        error ? 'border-red-300 focus-within:ring-red-500' : 'border-gray-200 focus-within:ring-indigo-500'
+      }" ref={ref}>
       {/* Country picker trigger */}
       <button
         type="button"
@@ -431,6 +442,7 @@ function PhoneInput({ value, onChange }: { value: string; onChange: (full: strin
         </div>
       )}
     </div>
+    </div>
   )
 }
 
@@ -464,6 +476,110 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const [submitted, setSubmitted]     = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [scopeExpanded, setScopeExpanded] = useState(false)
+  
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // ── Validation ──────────────────────────────────────────────────────────────
+
+  const US_STATES = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY', 'DC'
+  ]
+
+  const validateFullName = (name: string): string => {
+    if (!name.trim()) return 'Full name is required'
+    if (name.trim().length < 2) return 'Name must be at least 2 characters'
+    if (name.trim().length > 100) return 'Name must be less than 100 characters'
+    if (!/^[a-zA-Z\s\-'.]+$/.test(name.trim())) return 'Name can only contain letters, spaces, hyphens, apostrophes, and periods'
+    return ''
+  }
+
+  const validateEmail = (email: string): string => {
+    if (!email.trim()) return 'Email is required'
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email.trim())) return 'Please enter a valid email address'
+    return ''
+  }
+
+  const validatePhone = (phone: string): string => {
+    if (!phone.trim()) return 'Phone number is required'
+    // Remove the country code (starts with +)
+    // Phone format is: +[country code][number]
+    // Extract just the number part after the country code
+    const match = phone.match(/^\+(\d+)(\d+)$/)
+    if (!match) {
+      // If format doesn't match, validate all digits
+      const digitsOnly = phone.replace(/\D/g, '')
+      if (digitsOnly.length < 7) return 'Please enter a valid phone number'
+      return ''
+    }
+    // Validate only the number part (second group), not the country code (first group)
+    const numberPart = match[2]
+    if (numberPart.length < 7) return 'Please enter a valid phone number'
+    if (numberPart.length > 10) return 'Phone number is too long'
+    return ''
+  }
+
+  const validateAddress = (address: string): string => {
+    if (!address.trim()) return '' // Optional field
+    if (address.trim().length > 200) return 'Address must be less than 200 characters'
+    return ''
+  }
+
+  const validateCity = (city: string): string => {
+    if (!city.trim()) return '' // Optional field
+    if (city.trim().length < 2) return 'City must be at least 2 characters'
+    if (city.trim().length > 100) return 'City must be less than 100 characters'
+    if (!/^[a-zA-Z\s\-'.]+$/.test(city.trim())) return 'City can only contain letters, spaces, and hyphens'
+    return ''
+  }
+
+  const validateState = (state: string): string => {
+    if (!state.trim()) return '' // Optional field
+    const upperState = state.trim().toUpperCase()
+    if (upperState.length !== 2) return 'State must be 2 letters'
+    if (!US_STATES.includes(upperState)) return 'Please enter a valid US state code'
+    return ''
+  }
+
+  const validateZip = (zip: string): string => {
+    if (!zip.trim()) return '' // Optional field
+    const zipRegex = /^(^\d{5}(-\d{4})?$|^\d{5}$)/
+    if (!zipRegex.test(zip.trim())) return 'Please enter a valid ZIP code (e.g., 12345 or 12345-6789)'
+    return ''
+  }
+
+  const validateAllFields = (): boolean => {
+    const newErrors: Record<string, string> = {}
+    
+    const nameError = validateFullName(fullName)
+    if (nameError) newErrors.fullName = nameError
+    
+    const emailError = validateEmail(email)
+    if (emailError) newErrors.email = emailError
+    
+    const phoneError = validatePhone(phone)
+    if (phoneError) newErrors.phone = phoneError
+    
+    const addressError = validateAddress(address)
+    if (addressError) newErrors.address = addressError
+    
+    const cityError = validateCity(city)
+    if (cityError) newErrors.city = cityError
+    
+    const stateError = validateState(addrState)
+    if (stateError) newErrors.state = stateError
+    
+    const zipError = validateZip(zip)
+    if (zipError) newErrors.zip = zipError
+    
+    if (!consent) newErrors.consent = 'You must agree to be contacted'
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -637,6 +753,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     setFullName(''); setEmail(''); setPhone('')
     setAddress(''); setCity(''); setAddrState(''); setZip('')
     setConsent(false); setSubmitting(false); setSubmitted(false)
+    setErrors({})
     setStep('system_type')
   }
 
@@ -703,6 +820,12 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate all fields
+    if (!validateAllFields()) {
+      return
+    }
+    
     if (!consent) return
     setSubmitting(true)
     setSubmitError(null)
@@ -1328,32 +1451,75 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                   <h2 className="text-2xl font-bold text-[#1a1a3e]">Almost there! Tell us about yourself</h2>
                   <p className="text-gray-500 mt-1">We&apos;ll use this information to prepare your personalized quote</p>
                 </div>
-                <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-3">
-                  <FormInput icon={User} required placeholder="Full Name" value={fullName} onChange={e => setFullName(e.target.value)} />
-                  <FormInput icon={Mail} required type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} />
-                  <PhoneInput value={phone} onChange={setPhone} />
-                  <FormInput icon={MapPin} placeholder="Street Address" value={address} onChange={e => setAddress(e.target.value)} />
+                <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-3" noValidate>
+                  <FormInput 
+                    icon={User} 
+                    placeholder="Full Name" 
+                    value={fullName} 
+                    onChange={e => setFullName(e.target.value)}
+                    error={errors.fullName}
+                  />
+                  <FormInput 
+                    icon={Mail} 
+                    type="email" 
+                    placeholder="Email Address" 
+                    value={email} 
+                    onChange={e => setEmail(e.target.value)}
+                    error={errors.email}
+                  />
+                  <div>
+                    <PhoneInput value={phone} onChange={setPhone} error={errors.phone} />
+                    {errors.phone && <p className="text-xs text-red-600 mt-1 ml-1">{errors.phone}</p>}
+                  </div>
+                  <FormInput 
+                    icon={MapPin} 
+                    placeholder="Street Address" 
+                    value={address} 
+                    onChange={e => setAddress(e.target.value)}
+                    error={errors.address}
+                  />
                   <div className="grid grid-cols-3 gap-2">
-                    <input
-                      placeholder="City"
-                      value={city}
-                      onChange={e => setCity(e.target.value)}
-                      className="col-span-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
-                    <input
-                      placeholder="State"
-                      value={addrState}
-                      onChange={e => setAddrState(e.target.value)}
-                      maxLength={2}
-                      className="col-span-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent uppercase"
-                    />
-                    <input
-                      placeholder="ZIP"
-                      value={zip}
-                      onChange={e => setZip(e.target.value)}
-                      maxLength={10}
-                      className="col-span-1 px-4 py-3 rounded-xl border border-gray-200 bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    />
+                    <div>
+                      <input
+                        placeholder="City"
+                        value={city}
+                        onChange={e => setCity(e.target.value)}
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
+                          errors.city 
+                            ? 'border-red-300 focus:ring-red-500' 
+                            : 'border-gray-200 focus:ring-indigo-500'
+                        }`}
+                      />
+                      {errors.city && <p className="text-xs text-red-600 mt-1 ml-1">{errors.city}</p>}
+                    </div>
+                    <div>
+                      <input
+                        placeholder="State"
+                        value={addrState}
+                        onChange={e => setAddrState(e.target.value.toUpperCase())}
+                        maxLength={2}
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent uppercase ${
+                          errors.state 
+                            ? 'border-red-300 focus:ring-red-500' 
+                            : 'border-gray-200 focus:ring-indigo-500'
+                        }`}
+                      />
+                      {errors.state && <p className="text-xs text-red-600 mt-1 ml-1">{errors.state}</p>}
+                    </div>
+                    <div>
+                      <input
+                        placeholder="ZIP"
+                        value={zip}
+                        onChange={e => setZip(e.target.value)}
+                        maxLength={10}
+                        className={`w-full px-4 py-3 rounded-xl border bg-white text-[#1a1a3e] placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
+                          errors.zip 
+                            ? 'border-red-300 focus:ring-red-500' 
+                            : 'border-gray-200 focus:ring-indigo-500'
+                        }`}
+                      />
+                      {errors.zip && <p className="text-xs text-red-600 mt-1 ml-1">{errors.zip}</p>}
+                    </div>
                   </div>
                   <label className="flex items-start gap-2.5 cursor-pointer pt-1">
                     <input
@@ -1368,6 +1534,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                       Consent is not required to purchase.
                     </span>
                   </label>
+                  {errors.consent && <p className="text-xs text-red-600 -mt-2 ml-6">{errors.consent}</p>}
                   {submitError && (
                     <p className="text-sm text-red-600 text-center">{submitError}</p>
                   )}
