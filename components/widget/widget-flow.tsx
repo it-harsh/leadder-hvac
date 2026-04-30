@@ -505,20 +505,9 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const validatePhone = (phone: string): string => {
     if (!phone.trim()) return 'Phone number is required'
-    // Remove the country code (starts with +)
-    // Phone format is: +[country code][number]
-    // Extract just the number part after the country code
-    const match = phone.match(/^\+(\d+)(\d+)$/)
-    if (!match) {
-      // If format doesn't match, validate all digits
-      const digitsOnly = phone.replace(/\D/g, '')
-      if (digitsOnly.length < 7) return 'Please enter a valid phone number'
-      return ''
-    }
-    // Validate only the number part (second group), not the country code (first group)
-    const numberPart = match[2]
-    if (numberPart.length < 7) return 'Please enter a valid phone number'
-    if (numberPart.length > 10) return 'Phone number is too long'
+    const digitsOnly = phone.replace(/\D/g, '')
+    if (digitsOnly.length < 7) return 'Please enter a valid phone number'
+    if (digitsOnly.length > 15) return 'Phone number is too long'
     return ''
   }
 
