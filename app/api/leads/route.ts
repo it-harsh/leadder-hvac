@@ -58,26 +58,12 @@ export async function POST(request: Request) {
       errors.push('Invalid email format')
     }
 
-    // Phone validation
+    // Phone validation — E.164 allows 7–15 total digits (country code + national number)
     if (typeof phone !== 'string') {
       errors.push('Invalid phone number')
     } else {
-      // Extract the number part (excluding country code)
-      // Phone format is: +[country code][number]
-      const match = phone.match(/^\+(\d+)(\d+)$/)
-      let numberPart = ''
-      
-      if (match) {
-        // Valid format: extract just the number part (second group)
-        numberPart = match[2]
-      } else {
-        // If format doesn't match, use all digits
-        numberPart = phone.replace(/\D/g, '')
-      }
-      
-      // Validate the phone number part (not country code)
-      // Most countries: 7-10 digits
-      if (numberPart.length < 7 || numberPart.length > 10) {
+      const digitsOnly = phone.replace(/\D/g, '')
+      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
         errors.push('Invalid phone number')
       }
     }
