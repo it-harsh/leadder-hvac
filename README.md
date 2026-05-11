@@ -2,7 +2,7 @@
 
 An embeddable HVAC quoting widget + business portal built with Next.js and Supabase.
 
-**Live:** [https://leadder.io](https://leadder.io)
+**Live:** [https://leadder.io](https://app.leadder.io)
 
 ---
 
