@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import DOMPurify from 'dompurify'
 import { getSqftRange } from '@/lib/utils/hvac'
 import {
@@ -632,17 +633,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
     const discountPct = cfg?.multi_unit_discount_pct ?? 0
     let base = price + locationCost + headsCost + oilCost
     
-    // Debug logging
-    console.log('Price calculation:', {
-      basePrice: price,
-      locationCost,
-      headsCost,
-      oilCost,
-      selectedLocation,
-      productSlug: selectedProduct?.slug,
-      finalBase: base
-    })
-    
     if (unitQty > 1 && discountPct > 0) base = base * unitQty * (1 - discountPct / 100)
     else if (unitQty > 1) base = base * unitQty
     return Math.round(base)
@@ -676,15 +666,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
       })
       .sort((a, b) => ({ good: 0, better: 1, best: 2 }[a.tier as 'good'|'better'|'best'] ?? 0) -
                       ({ good: 0, better: 1, best: 2 }[b.tier as 'good'|'better'|'best'] ?? 0))
-    
-    // Debug logging
-    if (filtered.length === 0) {
-      console.log('No tiers found:', {
-        selectedProduct: selectedProduct.id,
-        selectedCapacity: selectedCapacity?.id,
-        allTiers: data.pricingTiers.filter(t => t.product_id === selectedProduct.id)
-      })
-    }
     
     return filtered
   }
@@ -1085,8 +1066,8 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                     return (
                       <div key={tier.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
                         {tierImg && (
-                          <div className="h-36 bg-gray-50 flex items-center justify-center overflow-hidden">
-                            <img src={tierImg} alt={`${tier.tier} tier`} className="h-full w-full object-contain p-3" />
+                          <div className="h-36 bg-gray-50 relative overflow-hidden">
+                            <Image src={tierImg} alt={`${tier.tier} tier`} fill className="object-contain p-3" />
                           </div>
                         )}
                         <div className={`px-5 pt-4 pb-3 border-b ${ts.headerBg}`}>
