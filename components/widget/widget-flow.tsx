@@ -8,7 +8,7 @@ import {
   Check, ArrowLeft, Loader2,
   User, Mail, Phone, MapPin,
   Snowflake, Thermometer, Flame, Wind, Zap, Fan, Droplets, Wrench, Settings,
-  Home, Building2, DoorOpen, ArrowDownToLine, MoveDown, Activity, Info,
+  Home, Building2, DoorOpen, ArrowDownToLine, MoveDown, Activity, Info, ChevronDown,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -331,34 +331,22 @@ function formatMonthly(amount: number): string {
 
 // ─── Phone Input with Country Code ───────────────────────────────────────────
 
+// US/Canada only for now — both use NANP (+1), numbers entered as XXX-XXX-XXXX
 const COUNTRIES = [
-  { code: 'US', dial: '+1',   flag: '🇺🇸', name: 'United States' },
-  { code: 'CA', dial: '+1',   flag: '🇨🇦', name: 'Canada' },
-  { code: 'GB', dial: '+44',  flag: '🇬🇧', name: 'United Kingdom' },
-  { code: 'AU', dial: '+61',  flag: '🇦🇺', name: 'Australia' },
-  { code: 'IN', dial: '+91',  flag: '🇮🇳', name: 'India' },
-  { code: 'MX', dial: '+52',  flag: '🇲🇽', name: 'Mexico' },
-  { code: 'DE', dial: '+49',  flag: '🇩🇪', name: 'Germany' },
-  { code: 'FR', dial: '+33',  flag: '🇫🇷', name: 'France' },
-  { code: 'IT', dial: '+39',  flag: '🇮🇹', name: 'Italy' },
-  { code: 'ES', dial: '+34',  flag: '🇪🇸', name: 'Spain' },
-  { code: 'BR', dial: '+55',  flag: '🇧🇷', name: 'Brazil' },
-  { code: 'AR', dial: '+54',  flag: '🇦🇷', name: 'Argentina' },
-  { code: 'NZ', dial: '+64',  flag: '🇳🇿', name: 'New Zealand' },
-  { code: 'ZA', dial: '+27',  flag: '🇿🇦', name: 'South Africa' },
-  { code: 'AE', dial: '+971', flag: '🇦🇪', name: 'UAE' },
-  { code: 'SA', dial: '+966', flag: '🇸🇦', name: 'Saudi Arabia' },
-  { code: 'PK', dial: '+92',  flag: '🇵🇰', name: 'Pakistan' },
-  { code: 'NG', dial: '+234', flag: '🇳🇬', name: 'Nigeria' },
-  { code: 'PH', dial: '+63',  flag: '🇵🇭', name: 'Philippines' },
-  { code: 'SG', dial: '+65',  flag: '🇸🇬', name: 'Singapore' },
+  { code: 'US', dial: '+1', flag: '🇺🇸', name: 'United States' },
+  { code: 'CA', dial: '+1', flag: '🇨🇦', name: 'Canada' },
 ]
+
+function formatNANP(digits: string): string {
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
+}
 
 function PhoneInput({ value, onChange, error }: { value: string; onChange: (full: string) => void; error?: string }) {
   const [selected, setSelected] = useState(COUNTRIES[0])
   const [number, setNumber] = useState('')
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -372,19 +360,15 @@ function PhoneInput({ value, onChange, error }: { value: string; onChange: (full
   function selectCountry(c: typeof COUNTRIES[0]) {
     setSelected(c)
     setOpen(false)
-    setSearch('')
-    onChange(`${c.dial}${number}`)
+    onChange(`${c.dial}${number.replace(/\D/g, '')}`)
   }
 
   function handleNumber(e: React.ChangeEvent<HTMLInputElement>) {
-    const n = e.target.value
-    setNumber(n)
-    onChange(`${selected.dial}${n}`)
+    // Strip a pasted +1 country code — no NANP number starts with 1
+    const digits = e.target.value.replace(/\D/g, '').replace(/^1/, '').slice(0, 10)
+    setNumber(formatNANP(digits))
+    onChange(`${selected.dial}${digits}`)
   }
-
-  const filtered = search
-    ? COUNTRIES.filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.dial.includes(search))
-    : COUNTRIES
 
   return (
     <div>
@@ -406,7 +390,8 @@ function PhoneInput({ value, onChange, error }: { value: string; onChange: (full
       <input
         type="tel"
         required
-        placeholder="Phone number"
+        placeholder="212-555-0199"
+        maxLength={12}
         value={number}
         onChange={handleNumber}
         className="flex-1 pl-3 pr-4 py-3 text-sm text-[#1a1a3e] placeholder-gray-400 bg-transparent focus:outline-none rounded-r-xl"
@@ -415,18 +400,8 @@ function PhoneInput({ value, onChange, error }: { value: string; onChange: (full
       {/* Dropdown */}
       {open && (
         <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
-          <div className="p-2 border-b border-gray-100">
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search country..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-400"
-            />
-          </div>
           <ul className="max-h-48 overflow-y-auto">
-            {filtered.map(c => (
+            {COUNTRIES.map(c => (
               <li key={c.code}>
                 <button
                   type="button"
@@ -443,6 +418,127 @@ function PhoneInput({ value, onChange, error }: { value: string; onChange: (full
         </div>
       )}
     </div>
+    </div>
+  )
+}
+
+// ─── Tier Quote Card ──────────────────────────────────────────────────────────
+
+type TierSpec = { label: string; value: string }
+
+function TierQuoteCard({
+  tierLabel, isPopular, badgeCls, priceCls, highlight, productName, metaLine,
+  image, efficiency, priceText, monthlyText, financingTerm, warrantyYears,
+  specs, scopeHtml, scopeLines,
+}: {
+  tierLabel: string
+  isPopular: boolean
+  badgeCls: string
+  priceCls: string
+  highlight: boolean
+  productName: string
+  metaLine: string | null
+  image: string | null
+  efficiency: string | null
+  priceText: string
+  monthlyText: string | null
+  financingTerm: number
+  warrantyYears: number | null
+  specs: TierSpec[]
+  scopeHtml: string
+  scopeLines: string[]
+}) {
+  const [scopeOpen, setScopeOpen] = useState(false)
+  const hasScope = scopeHtml.length > 0 || scopeLines.length > 0
+  return (
+    <div className={`@container bg-white rounded-2xl border overflow-hidden ${highlight ? 'border-indigo-300 shadow-md' : 'border-gray-200'}`}>
+      <div className="p-5 sm:p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="text-lg font-bold text-[#1a1a3e]">{productName}</h3>
+          <div className="flex items-center gap-2 shrink-0">
+            {isPopular && (
+              <span className="text-xs bg-amber-500 text-white font-semibold px-2.5 py-0.5 rounded-full">Most Popular</span>
+            )}
+            <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeCls}`}>{tierLabel}</span>
+          </div>
+        </div>
+        {metaLine && <p className="text-xs text-gray-400 mt-0.5">{metaLine}</p>}
+
+        {/* Body: side-by-side only when the card itself is wide enough (container query) */}
+        <div className="grid @md:grid-cols-[180px_1fr] gap-5 mt-4">
+          <div>
+            {image && (
+              <div className="h-36 bg-gray-50 rounded-xl relative overflow-hidden">
+                <Image src={image} alt={`${tierLabel} tier`} fill className="object-contain p-3" />
+              </div>
+            )}
+            {efficiency && (
+              <div className="mt-3">
+                <p className="text-xs font-semibold text-[#1a1a3e] mb-1">Unit Efficiency</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{efficiency}</p>
+              </div>
+            )}
+          </div>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Estimated Price</p>
+              <p className={`text-2xl font-bold ${priceCls}`}>{priceText}</p>
+              {warrantyYears != null && <p className="text-xs text-gray-400 mt-0.5">{warrantyYears}-yr warranty</p>}
+            </div>
+            {monthlyText && (
+              <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm">
+                <span className="font-bold text-[#1a1a3e]">{monthlyText}</span>{' '}
+                <span className="text-gray-500">with financing over {financingTerm} months</span>
+              </div>
+            )}
+            {specs.length > 0 && (
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                {specs.map(s => (
+                  <div key={s.label}>
+                    <dt className="text-xs text-gray-400">{s.label}</dt>
+                    <dd className="text-sm font-medium text-[#1a1a3e]">{s.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+        </div>
+
+        {/* What's Included — collapsed by default */}
+        {hasScope && (
+          <div className="mt-5 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              aria-expanded={scopeOpen}
+              onClick={() => setScopeOpen(v => !v)}
+              className="w-full flex items-center justify-between text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
+            >
+              What&apos;s Included
+              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${scopeOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {scopeOpen && (
+              scopeHtml ? (
+                <div
+                  className="text-sm text-gray-600 widget-scope-html mt-3"
+                  // Content is admin-entered and sanitized with DOMPurify
+                  dangerouslySetInnerHTML={{ __html: scopeHtml }}
+                />
+              ) : (
+                <ul className="space-y-1.5 mt-3">
+                  {scopeLines.map((line, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              )
+            )}
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }
@@ -476,7 +572,6 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
   const [submitting, setSubmitting]   = useState(false)
   const [submitted, setSubmitted]     = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [scopeExpanded, setScopeExpanded] = useState(false)
   
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -506,9 +601,9 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const validatePhone = (phone: string): string => {
     if (!phone.trim()) return 'Phone number is required'
-    const digitsOnly = phone.replace(/\D/g, '')
-    if (digitsOnly.length < 7) return 'Please enter a valid phone number'
-    if (digitsOnly.length > 15) return 'Phone number is too long'
+    // US/Canada (NANP): 10 digits after the +1 country code; area code and exchange start with 2-9
+    const digitsOnly = phone.replace(/\D/g, '').replace(/^1/, '')
+    if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digitsOnly)) return 'Please enter a valid 10-digit phone number (XXX-XXX-XXXX)'
     return ''
   }
 
@@ -712,7 +807,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
 
   const resetProductState = () => {
     setSelectedProduct(null); setSelectedCapacity(null)
-    setSelectedLocation(''); setNumHeads(1); setUnitQty(1); setSelectedTier(null); setScopeExpanded(false)
+    setSelectedLocation(''); setNumHeads(1); setUnitQty(1); setSelectedTier(null)
   }
 
   const handleTabChange = (tab: Tab) => {
@@ -1049,98 +1144,60 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                 <p className="text-gray-500 max-w-sm mx-auto text-sm">{data.settings.widget_thank_you_message}</p>
               </div>
 
-              {/* Equipment: 3 tier cards */}
-              {!isService && tiers.length > 0 && (
-                <div className="grid gap-4 sm:grid-cols-3">
-                  {tiers.map(tier => {
-                    const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
-                    const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
-                    const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
-                    const rawScope = (selectedProduct ? getScopeOfWork(selectedProduct.id, tier.tier) : null) ?? tier.scope_of_work ?? ''
-                    const isHtmlScope = rawScope.trimStart().startsWith('<')
-                    const safeScope = isHtmlScope ? DOMPurify.sanitize(rawScope) : ''
-                    const scopeLines = isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)
-                    const PREVIEW_LINES = 3
-                    const visibleLines = scopeExpanded ? scopeLines : scopeLines.slice(0, PREVIEW_LINES)
-                    const hasMoreScope = scopeLines.length > PREVIEW_LINES
-                    return (
-                      <div key={tier.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col">
-                        {tierImg && (
-                          <div className="h-36 bg-gray-50 relative overflow-hidden">
-                            <Image src={tierImg} alt={`${tier.tier} tier`} fill className="object-contain p-3" />
-                          </div>
-                        )}
-                        <div className={`px-5 pt-4 pb-3 border-b ${ts.headerBg}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${ts.badge}`}>
-                              {tier.tier}
-                            </span>
-                            {tier.tier === 'better' && (
-                              <span className="text-xs bg-amber-500 text-white font-semibold px-2 py-0.5 rounded-full">
-                                Most Popular
-                              </span>
-                            )}
-                          </div>
-                          <p className="font-semibold text-[#1a1a3e] text-sm">{selectedProduct?.name}</p>
-                          {capLine && <p className="text-xs text-gray-400 mt-0.5">{capLine}</p>}
-                        </div>
-                        <div className="p-5 space-y-4 flex-1">
-                          <div>
-                            <p className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">Estimated Price</p>
-                            <p className={`text-xl font-bold ${ts.priceCls}`}>{formatPrice(tier.price)}</p>
-                            {data.settings.financing_enabled && tier.price > 0 && (
-                              <p className="text-xs text-indigo-500 font-medium mt-0.5">
-                                As low as {formatMonthly(calcMonthly(tier.price, data.settings.financing_term_months, data.settings.financing_apr))}
-                              </p>
-                            )}
-                            {tier.warranty_years && (
-                              <p className="text-xs text-gray-400 mt-0.5">{tier.warranty_years}-yr warranty</p>
-                            )}
-                          </div>
-                          {eff && (
-                            <div className="bg-gray-50 rounded-xl p-3">
-                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">Unit Efficiency</p>
-                              <p className="text-sm text-gray-600 leading-relaxed">{eff}</p>
-                            </div>
-                          )}
-                          {(isHtmlScope ? safeScope.length > 0 : scopeLines.length > 0) && (
-                            <div>
-                              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-2">What&apos;s Included</p>
-                              {isHtmlScope ? (
-                                <div
-                                  className="text-sm text-gray-600 widget-scope-html"
-                                  // Content is admin-entered and sanitized with DOMPurify
-                                  dangerouslySetInnerHTML={{ __html: safeScope }}
-                                />
-                              ) : (
-                                <>
-                                  <ul className="space-y-1.5">
-                                    {visibleLines.map((line, i) => (
-                                      <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
-                                        <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-400 flex-shrink-0" />
-                                        {line}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                  {hasMoreScope && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setScopeExpanded(v => !v)}
-                                      className="text-xs text-indigo-600 hover:text-indigo-700 mt-2 font-medium"
-                                    >
-                                      {scopeExpanded ? 'See Less' : `See More (${scopeLines.length - PREVIEW_LINES} more)`}
-                                    </button>
-                                  )}
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+              {/* Equipment: stacked tier cards */}
+              {!isService && tiers.length > 0 && (() => {
+                const specs: TierSpec[] = []
+                if (systemConfig) {
+                  const cfgOpt = getConfigOptions().find(o => o.key === systemConfig)
+                  if (cfgOpt) specs.push({ label: 'Type', value: cfgOpt.label })
+                }
+                if (selectedCapacity) specs.push({ label: 'Size', value: selectedCapacity.label })
+                specs.push({ label: 'Units', value: String(unitQty) })
+                if (systemType) {
+                  const st = SYSTEM_TYPE_OPTIONS.find(o => o.key === systemType)
+                  if (st) specs.push({ label: 'System Mode', value: st.label })
+                }
+                if (heatSource) {
+                  const hs = (HEAT_SOURCE_OPTIONS[systemType ?? ''] ?? []).find(o => o.key === heatSource)
+                  specs.push({ label: 'Heat Source', value: hs?.label ?? heatSource })
+                }
+                return (
+                  <div className="grid gap-4 max-w-2xl mx-auto lg:max-w-none lg:grid-cols-3">
+                    {tiers.map(tier => {
+                      const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
+                      const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
+                      const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
+                      const rawScope = (selectedProduct ? getScopeOfWork(selectedProduct.id, tier.tier) : null) ?? tier.scope_of_work ?? ''
+                      const isHtmlScope = rawScope.trimStart().startsWith('<')
+                      return (
+                        <TierQuoteCard
+                          key={tier.id}
+                          tierLabel={tier.tier}
+                          isPopular={tier.tier === 'better'}
+                          badgeCls={ts.badge}
+                          priceCls={ts.priceCls}
+                          highlight={tier.tier === 'better'}
+                          productName={selectedProduct?.name ?? ''}
+                          metaLine={capLine}
+                          image={tierImg}
+                          efficiency={eff}
+                          priceText={formatPrice(tier.price)}
+                          monthlyText={
+                            data.settings.financing_enabled && tier.price > 0
+                              ? formatMonthly(calcMonthly(tier.price, data.settings.financing_term_months, data.settings.financing_apr))
+                              : null
+                          }
+                          financingTerm={data.settings.financing_term_months}
+                          warrantyYears={tier.warranty_years ?? null}
+                          specs={specs}
+                          scopeHtml={isHtmlScope ? DOMPurify.sanitize(rawScope) : ''}
+                          scopeLines={isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)}
+                        />
+                      )
+                    })}
+                  </div>
+                )
+              })()}
 
               {!isService && tiers.length === 0 && (
                 <p className="text-center text-gray-400 text-sm">Contact us for a custom quote.</p>

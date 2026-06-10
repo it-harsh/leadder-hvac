@@ -58,13 +58,16 @@ export async function POST(request: Request) {
       errors.push('Invalid email format')
     }
 
-    // Phone validation — E.164 allows 7–15 total digits (country code + national number)
+    // Phone validation — US/Canada (NANP) only: 10 digits, optionally prefixed with +1
     if (typeof phone !== 'string') {
       errors.push('Invalid phone number')
     } else {
       const digitsOnly = phone.replace(/\D/g, '')
-      if (digitsOnly.length < 7 || digitsOnly.length > 15) {
-        errors.push('Invalid phone number')
+      const national = digitsOnly.length === 11 && digitsOnly.startsWith('1')
+        ? digitsOnly.slice(1)
+        : digitsOnly
+      if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(national)) {
+        errors.push('Invalid phone number — must be a 10-digit US or Canadian number')
       }
     }
 
