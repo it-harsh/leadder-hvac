@@ -429,7 +429,7 @@ type TierSpec = { label: string; value: string }
 function TierQuoteCard({
   tierLabel, isPopular, badgeCls, priceCls, highlight, productName, metaLine,
   image, efficiency, priceText, monthlyText, financingTerm, warrantyYears,
-  specs, scopeHtml, scopeLines,
+  specs, scopeHtml, scopeLines, scopeOpen, onScopeToggle,
 }: {
   tierLabel: string
   isPopular: boolean
@@ -447,22 +447,21 @@ function TierQuoteCard({
   specs: TierSpec[]
   scopeHtml: string
   scopeLines: string[]
+  scopeOpen: boolean
+  onScopeToggle: () => void
 }) {
-  const [scopeOpen, setScopeOpen] = useState(false)
   const hasScope = scopeHtml.length > 0 || scopeLines.length > 0
   return (
     <div className={`@container bg-white rounded-2xl border overflow-hidden ${highlight ? 'border-indigo-300 shadow-md' : 'border-gray-200'}`}>
       <div className="p-5 sm:p-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="text-lg font-bold text-[#1a1a3e]">{productName}</h3>
-          <div className="flex items-center gap-2 shrink-0">
-            {isPopular && (
-              <span className="text-xs bg-amber-500 text-white font-semibold px-2.5 py-0.5 rounded-full">Most Popular</span>
-            )}
-            <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeCls}`}>{tierLabel}</span>
-          </div>
+        {/* Header — badges on their own row so title never wraps due to badge width */}
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className={`text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${badgeCls}`}>{tierLabel}</span>
+          {isPopular && (
+            <span className="text-xs bg-amber-500 text-white font-semibold px-2.5 py-0.5 rounded-full">Most Popular</span>
+          )}
         </div>
+        <h3 className="text-lg font-bold text-[#1a1a3e]">{productName}</h3>
         {metaLine && <p className="text-xs text-gray-400 mt-0.5">{metaLine}</p>}
 
         {/* Body: side-by-side only when the card itself is wide enough (container query) */}
@@ -511,7 +510,7 @@ function TierQuoteCard({
             <button
               type="button"
               aria-expanded={scopeOpen}
-              onClick={() => setScopeOpen(v => !v)}
+              onClick={onScopeToggle}
               className="w-full flex items-center justify-between text-sm font-semibold text-indigo-600 hover:text-indigo-700 transition-colors"
             >
               What&apos;s Included
@@ -539,6 +538,63 @@ function TierQuoteCard({
         )}
 
       </div>
+    </div>
+  )
+}
+
+function ScopedTierGrid({
+  tiers, selectedProduct, capLine, specs, financingEnabled, financingTermMonths, financingApr,
+  formatPrice, getEfficiencyDescription, getTierImage, getScopeOfWork,
+}: {
+  tiers: PricingTier[]
+  selectedProduct: Product | null
+  capLine: string | null
+  specs: TierSpec[]
+  financingEnabled: boolean
+  financingTermMonths: number
+  financingApr: number
+  formatPrice: (price: number) => string
+  getEfficiencyDescription: (productId: string, tier: string) => string | null
+  getTierImage: (productId: string, tier: string) => string | null
+  getScopeOfWork: (productId: string, tier: string) => string | null
+}) {
+  const [scopeOpen, setScopeOpen] = useState(false)
+  return (
+    <div className="grid gap-4 lg:grid-cols-3">
+      {tiers.map(tier => {
+        const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
+        const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
+        const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
+        const rawScope = (selectedProduct ? getScopeOfWork(selectedProduct.id, tier.tier) : null) ?? tier.scope_of_work ?? ''
+        const isHtmlScope = rawScope.trimStart().startsWith('<')
+        return (
+          <TierQuoteCard
+            key={tier.id}
+            tierLabel={tier.tier}
+            isPopular={tier.tier === 'better'}
+            badgeCls={ts.badge}
+            priceCls={ts.priceCls}
+            highlight={tier.tier === 'better'}
+            productName={selectedProduct?.name ?? ''}
+            metaLine={capLine}
+            image={tierImg}
+            efficiency={eff}
+            priceText={formatPrice(tier.price)}
+            monthlyText={
+              financingEnabled && tier.price > 0
+                ? formatMonthly(calcMonthly(tier.price, financingTermMonths, financingApr))
+                : null
+            }
+            financingTerm={financingTermMonths}
+            warrantyYears={tier.warranty_years ?? null}
+            specs={specs}
+            scopeHtml={isHtmlScope ? DOMPurify.sanitize(rawScope) : ''}
+            scopeLines={isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)}
+            scopeOpen={scopeOpen}
+            onScopeToggle={() => setScopeOpen(v => !v)}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -910,6 +966,22 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
       priceBetter = tm.better ? calcAdjustedPrice(tm.better.price) : null
       priceBest   = tm.best   ? calcAdjustedPrice(tm.best.price)   : null
     }
+    const specsPayload: { label: string; value: string }[] = []
+    if (systemConfig) {
+      const cfgOpt = getConfigOptions().find(o => o.key === systemConfig)
+      if (cfgOpt) specsPayload.push({ label: 'Type', value: cfgOpt.label })
+    }
+    if (selectedCapacity) specsPayload.push({ label: 'Size', value: selectedCapacity.label })
+    specsPayload.push({ label: 'Units', value: String(unitQty) })
+    if (systemType) {
+      const st = SYSTEM_TYPE_OPTIONS.find(o => o.key === systemType)
+      if (st) specsPayload.push({ label: 'System Mode', value: st.label })
+    }
+    if (heatSource) {
+      const hs = (HEAT_SOURCE_OPTIONS[systemType ?? ''] ?? []).find(o => o.key === heatSource)
+      specsPayload.push({ label: 'Heat Source', value: hs?.label ?? heatSource })
+    }
+
     try {
       const res = await fetch('/api/leads', {
         method: 'POST',
@@ -921,6 +993,7 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
           tierSelected, quotedPrice, priceGood, priceBetter, priceBest,
           firstName, lastName, email, phone,
           address: address || null, city: city || null, state: addrState || null, zip: zip || null,
+          specs: specsPayload.length > 0 ? specsPayload : undefined,
         }),
       })
       if (res.ok) { setSubmitted(true); setStep('confirmation') }
@@ -1162,40 +1235,19 @@ export function WidgetFlow({ data }: { data: WidgetData }) {
                   specs.push({ label: 'Heat Source', value: hs?.label ?? heatSource })
                 }
                 return (
-                  <div className="grid gap-4 max-w-2xl mx-auto lg:max-w-none lg:grid-cols-3">
-                    {tiers.map(tier => {
-                      const ts = CONF_TIER_STYLES[tier.tier] ?? CONF_TIER_STYLES.good
-                      const eff = selectedProduct ? getEfficiencyDescription(selectedProduct.id, tier.tier) : null
-                      const tierImg = selectedProduct ? getTierImage(selectedProduct.id, tier.tier) : null
-                      const rawScope = (selectedProduct ? getScopeOfWork(selectedProduct.id, tier.tier) : null) ?? tier.scope_of_work ?? ''
-                      const isHtmlScope = rawScope.trimStart().startsWith('<')
-                      return (
-                        <TierQuoteCard
-                          key={tier.id}
-                          tierLabel={tier.tier}
-                          isPopular={tier.tier === 'better'}
-                          badgeCls={ts.badge}
-                          priceCls={ts.priceCls}
-                          highlight={tier.tier === 'better'}
-                          productName={selectedProduct?.name ?? ''}
-                          metaLine={capLine}
-                          image={tierImg}
-                          efficiency={eff}
-                          priceText={formatPrice(tier.price)}
-                          monthlyText={
-                            data.settings.financing_enabled && tier.price > 0
-                              ? formatMonthly(calcMonthly(tier.price, data.settings.financing_term_months, data.settings.financing_apr))
-                              : null
-                          }
-                          financingTerm={data.settings.financing_term_months}
-                          warrantyYears={tier.warranty_years ?? null}
-                          specs={specs}
-                          scopeHtml={isHtmlScope ? DOMPurify.sanitize(rawScope) : ''}
-                          scopeLines={isHtmlScope ? [] : rawScope.split('\n').map(l => l.trim()).filter(Boolean)}
-                        />
-                      )
-                    })}
-                  </div>
+                  <ScopedTierGrid
+                    tiers={tiers}
+                    selectedProduct={selectedProduct}
+                    capLine={capLine}
+                    specs={specs}
+                    financingEnabled={data.settings.financing_enabled}
+                    financingTermMonths={data.settings.financing_term_months}
+                    financingApr={data.settings.financing_apr}
+                    formatPrice={formatPrice}
+                    getEfficiencyDescription={getEfficiencyDescription}
+                    getTierImage={getTierImage}
+                    getScopeOfWork={getScopeOfWork}
+                  />
                 )
               })()}
 

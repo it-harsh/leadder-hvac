@@ -28,6 +28,7 @@ export interface QuoteEmailInput {
   businessWebsite: string | null
   redirectUrl: string | null
   redirectButtonText: string | null
+  specs: { label: string; value: string }[]
 }
 
 const TIER_STYLES = {
@@ -66,7 +67,16 @@ function calcMonthly(price: number, termMonths: number, apr: number): number {
 }
 
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function parseScopeLines(scope: string | null): string[] {
@@ -75,36 +85,63 @@ function parseScopeLines(scope: string | null): string[] {
   return text.split('\n').map(l => l.trim()).filter(Boolean)
 }
 
-function buildTierCard(tier: TierData, pct: number, financingEnabled: boolean, termMonths: number, apr: number): string {
+function buildSpecGrid(specs: { label: string; value: string }[]): string {
+  if (!specs.length) return ''
+  const pairs: string[] = []
+  for (let i = 0; i < specs.length; i += 2) {
+    const a = specs[i]
+    const b = specs[i + 1]
+    pairs.push(`
+      <tr>
+        <td style="width:50%;padding:5px 0;vertical-align:top;">
+          <p style="margin:0;color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">${esc(a.label)}</p>
+          <p style="margin:2px 0 0;color:#1a1a3e;font-size:13px;font-weight:600;">${esc(a.value)}</p>
+        </td>
+        ${b ? `<td style="width:50%;padding:5px 0;vertical-align:top;">
+          <p style="margin:0;color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:0.5px;">${esc(b.label)}</p>
+          <p style="margin:2px 0 0;color:#1a1a3e;font-size:13px;font-weight:600;">${esc(b.value)}</p>
+        </td>` : '<td></td>'}
+      </tr>`)
+  }
+  return `
+    <tr>
+      <td style="background:#ffffff;padding:0 32px 20px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #f3f4f6;padding-top:12px;">
+          ${pairs.join('')}
+        </table>
+      </td>
+    </tr>`
+}
+
+function buildTierRow(tier: TierData, pct: number, financingEnabled: boolean, termMonths: number, apr: number): string {
   const s = TIER_STYLES[tier.tier]
   const priceText = formatPrice(tier.price, pct)
   const isPopular = tier.tier === 'better'
-  const scopeLines = parseScopeLines(tier.scopeOfWork)
   const monthly = financingEnabled && tier.price > 0
     ? Math.ceil(calcMonthly(tier.price, termMonths, apr))
     : null
 
+  const popularBanner = isPopular
+    ? `<tr><td colspan="2" style="background:#f59e0b;padding:4px 20px;text-align:center;"><span style="color:#fff;font-size:11px;font-weight:700;letter-spacing:0.5px;">&#9733; Most Popular</span></td></tr>`
+    : ''
+
   return `
-    <td width="33%" style="vertical-align:top;padding:6px;">
+    <tr><td style="padding:6px 0;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:2px solid ${s.border};border-radius:12px;overflow:hidden;">
+        ${popularBanner}
         <tr>
-          <td style="background:${s.bg};padding:14px;text-align:center;">
-            ${isPopular ? `<span style="display:inline-block;background:#f59e0b;color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px;">Most Popular</span><br>` : ''}
-            <span style="background:${s.badgeBg};color:${s.badgeColor};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 10px;border-radius:999px;">${esc(s.label)}</span>
+          <td style="background:${s.bg};padding:16px 20px;width:55%;vertical-align:top;">
+            <span style="background:${s.badgeBg};color:${s.badgeColor};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 12px;border-radius:999px;">${esc(s.label)}</span>
+            ${tier.warrantyYears != null ? `<span style="margin-left:8px;color:#9ca3af;font-size:11px;">${tier.warrantyYears}-yr warranty</span>` : ''}
+            ${tier.efficiencyDescription ? `<p style="margin:8px 0 0;color:#6b7280;font-size:12px;line-height:1.5;">${esc(tier.efficiencyDescription)}</p>` : ''}
           </td>
-        </tr>
-        <tr>
-          <td style="background:#ffffff;padding:16px;">
-            <p style="margin:0 0 2px;color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Estimated Price</p>
-            <p style="margin:0;color:${s.priceColor};font-size:18px;font-weight:700;line-height:1.2;">${priceText}</p>
-            ${tier.warrantyYears != null ? `<p style="margin:4px 0 0;color:#9ca3af;font-size:11px;">${tier.warrantyYears}-yr warranty</p>` : ''}
-            ${tier.efficiencyDescription ? `<p style="margin:10px 0 2px;color:#374151;font-size:11px;font-weight:600;">Unit Efficiency</p><p style="margin:0;color:#6b7280;font-size:11px;">${esc(tier.efficiencyDescription)}</p>` : ''}
-            ${monthly != null ? `<div style="margin:10px 0 0;background:#f3f4f6;border-radius:8px;padding:8px;text-align:center;"><span style="color:#1a1a3e;font-size:13px;font-weight:700;">$${monthly}/mo</span><br><span style="color:#9ca3af;font-size:10px;">with ${termMonths}-mo financing</span></div>` : ''}
-            ${scopeLines.length > 0 ? `<p style="margin:12px 0 6px;color:#374151;font-size:11px;font-weight:600;border-top:1px solid #f3f4f6;padding-top:10px;">What's Included</p><ul style="margin:0;padding-left:16px;">${scopeLines.slice(0, 6).map(l => `<li style="color:#6b7280;font-size:11px;margin-bottom:3px;">${esc(l)}</li>`).join('')}</ul>` : ''}
+          <td style="background:#ffffff;padding:16px 20px;text-align:right;vertical-align:middle;width:45%;">
+            <p style="margin:0;color:${s.priceColor};font-size:22px;font-weight:800;line-height:1.2;">${priceText}</p>
+            ${monthly != null ? `<p style="margin:6px 0 0;color:#6b7280;font-size:12px;"><strong style="color:#374151;">$${monthly}/mo</strong> &middot; ${termMonths}-mo financing</p>` : ''}
           </td>
         </tr>
       </table>
-    </td>`
+    </td></tr>`
 }
 
 export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
@@ -114,14 +151,16 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
     financingEnabled, financingTermMonths, financingApr,
     financingLinkText, financingLinkUrl,
     businessName, businessPhone, businessEmail, businessWebsite,
-    redirectUrl, redirectButtonText,
+    redirectUrl, redirectButtonText, specs,
   } = input
 
   const addressLine = [address, city, state, zip].filter(Boolean).join(', ')
-  const productLine = [productName, capacityLabel].filter(Boolean).join(' · ')
+  const capacityLine = capacityLabel ?? null
+
+  const specGridHtml = buildSpecGrid(specs)
 
   const tierCardsHtml = tiers
-    .map(t => buildTierCard(t, priceRangePct, financingEnabled, financingTermMonths, financingApr))
+    .map(t => buildTierRow(t, priceRangePct, financingEnabled, financingTermMonths, financingApr))
     .join('')
 
   const financingCtaHtml = financingEnabled && financingLinkUrl && financingLinkText
@@ -146,26 +185,34 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;">
 
           <tr>
-            <td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:32px;text-align:center;">
-              <p style="margin:0 0 6px;color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">HVAC Quote</p>
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;">${esc(businessName)}</h1>
-              <p style="margin:10px 0 0;color:rgba(255,255,255,0.85);font-size:15px;">Hi ${esc(firstName)}, here's your personalized estimate</p>
+            <td style="background:linear-gradient(135deg,#047857 0%,#10b981 100%);border-radius:12px 12px 0 0;padding:44px 40px 38px;text-align:center;">
+              <p style="margin:0 0 12px;color:rgba(255,255,255,0.5);font-size:11px;text-transform:uppercase;letter-spacing:2.5px;font-weight:600;">HVAC Installation Quote</p>
+              <h1 style="margin:0;color:#ffffff;font-size:34px;font-weight:800;letter-spacing:-0.5px;line-height:1.1;">${esc(businessName)}</h1>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="padding:22px 0 24px;"><div style="height:1px;background:rgba(255,255,255,0.2);"></div></td></tr></table>
+              <p style="margin:0 0 10px;color:rgba(255,255,255,0.95);font-size:16px;font-weight:500;">Hi ${esc(firstName)}, here&rsquo;s your personalized estimate</p>
+              ${addressLine ? `<span style="display:inline-block;background:rgba(255,255,255,0.95);border-radius:999px;padding:5px 16px;color:#065f46;font-size:12px;font-weight:500;">&#128205;&nbsp;${esc(addressLine)}</span>` : ''}
             </td>
           </tr>
-
-          ${addressLine ? `<tr><td style="background:#eef2ff;padding:12px 32px;border-left:1px solid #e0e7ff;border-right:1px solid #e0e7ff;"><p style="margin:0;color:#4f46e5;font-size:13px;">&#128205; ${esc(addressLine)}</p></td></tr>` : ''}
 
           <tr>
             <td style="background:#ffffff;padding:24px 32px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-              ${productLine ? `<h2 style="margin:0 0 4px;color:#1a1a3e;font-size:17px;font-weight:700;">${esc(productLine)}</h2>` : ''}
-              <p style="margin:0;color:#6b7280;font-size:13px;">Your estimated installation price range</p>
+              ${productName ? `<h2 style="margin:0 0 4px;color:#047857;font-size:19px;font-weight:800;letter-spacing:-0.3px;">${esc(productName)}</h2>` : ''}
+              ${capacityLine ? `<p style="margin:0;color:#6b7280;font-size:13px;font-weight:500;">${esc(capacityLine)}</p>` : ''}
+            </td>
+          </tr>
+
+          ${specGridHtml}
+
+          <tr>
+            <td style="background:#ffffff;padding:4px 32px 8px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+              <p style="margin:0;color:#9ca3af;font-size:12px;">Your estimated installation price range</p>
             </td>
           </tr>
 
           <tr>
-            <td style="background:#ffffff;padding:8px 20px 24px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
+            <td style="background:#ffffff;padding:0 24px 24px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                <tr>${tierCardsHtml}</tr>
+                ${tierCardsHtml}
               </table>
             </td>
           </tr>

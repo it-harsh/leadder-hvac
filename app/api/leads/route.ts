@@ -33,6 +33,7 @@ export async function POST(request: Request) {
       priceGood,
       priceBetter,
       priceBest,
+      specs,
     } = body
 
     // Validate required fields
@@ -147,7 +148,7 @@ export async function POST(request: Request) {
       await Promise.allSettled([
         fireWebhookAsync(businessId, lead),
         fireGHLAsync(businessId, lead),
-        fireQuoteEmailAsync(businessId, lead),
+        fireQuoteEmailAsync(businessId, lead, specs),
       ])
     })
 
@@ -341,7 +342,7 @@ async function fireWebhookAsync(businessId: string, lead: Record<string, unknown
   }
 }
 
-async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unknown>) {
+async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unknown>, specs?: { label: string; value: string }[]) {
   try {
     const [settingsResult, businessResult] = await Promise.all([
       supabaseAdmin
@@ -367,7 +368,6 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
 
     const productId = lead.product_id as string | null
     let tiers: TierData[] = []
-
     if (productId && (lead.price_good || lead.price_better || lead.price_best)) {
       let tiersQuery = supabaseAdmin
         .from('pricing_tiers')
@@ -392,10 +392,11 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
       const pricingMap = Object.fromEntries((pricingResult.data ?? []).map(t => [t.tier, t]))
       const sysMap = Object.fromEntries((sysConfigResult.data ?? []).map(t => [t.tier, t]))
 
+      const toNum = (v: unknown) => v != null ? Number(v) : null
       const tierPrices: Record<string, number | null> = {
-        good: lead.price_good as number | null,
-        better: lead.price_better as number | null,
-        best: lead.price_best as number | null,
+        good:   toNum(lead.price_good),
+        better: toNum(lead.price_better),
+        best:   toNum(lead.price_best),
       }
 
       tiers = (['good', 'better', 'best'] as const)
@@ -417,7 +418,7 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
       if (pt) {
         tiers = [{
           tier: pt.tier as 'good' | 'better' | 'best',
-          price: lead.quoted_price as number,
+          price: Number(lead.quoted_price),
           warrantyYears: pt.warranty_years ?? null,
           efficiencyDescription: null,
           scopeOfWork: pt.scope_of_work ?? (Array.isArray(pt.features) ? pt.features.join('\n') : null),
@@ -447,6 +448,7 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
       businessWebsite: business.website,
       redirectUrl: settings.redirect_url,
       redirectButtonText: settings.redirect_button_text,
+      specs: specs ?? [],
     })
 
     await mailtrap.send({

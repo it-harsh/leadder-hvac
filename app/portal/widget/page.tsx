@@ -1,5 +1,6 @@
 import { createClient, getUser } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { WidgetEmbedCode } from '@/components/portal/widget-embed-code'
 
 export default async function WidgetPage() {
@@ -20,8 +21,11 @@ export default async function WidgetPage() {
     redirect('/auth/login')
   }
 
-  // Get base URL for the widget
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  // Derive base URL from the actual request so local dev points to localhost
+  const headersList = await headers()
+  const host = headersList.get('host') ?? 'localhost:3000'
+  const proto = host.startsWith('localhost') || host.startsWith('127.') ? 'http' : 'https'
+  const baseUrl = `${proto}://${host}`
   const widgetUrl = `${baseUrl}/widget/${business.slug}`
   const iframeCode = `<iframe src="${widgetUrl}" width="100%" height="700" frameborder="0" style="border: none; max-width: 100%;"></iframe>`
 
