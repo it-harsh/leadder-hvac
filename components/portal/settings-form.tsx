@@ -48,6 +48,9 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
   const [webhookEnabled, setWebhookEnabled] = useState(settings?.webhook_enabled ?? true)
   const [webhookUrl, setWebhookUrl] = useState(settings?.webhook_url || '')
 
+  // Integrations — customer quote email
+  const [customerEmailEnabled, setCustomerEmailEnabled] = useState(settings?.customer_quote_email_enabled ?? true)
+
   // Integrations — GHL
   const [ghlEnabled, setGhlEnabled] = useState(settings?.ghl_enabled ?? false)
   const [ghlApiKey, setGhlApiKey] = useState(settings?.ghl_api_key || '')
@@ -100,6 +103,7 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
             ghl_location_id: ghlLocationId || null,
             ghl_pipeline_id: ghlPipelineId || null,
             ghl_stage_id: ghlStageId || null,
+            customer_quote_email_enabled: customerEmailEnabled,
           })
           .eq('business_id', business.id),
       ])
@@ -433,6 +437,30 @@ export function SettingsForm({ business, settings }: SettingsFormProps) {
                 phone, address, product, tier, and quoted price.
               </p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Customer Quote Email */}
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-foreground">Customer Quote Email</CardTitle>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={customerEmailEnabled}
+                  onChange={e => setCustomerEmailEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-muted peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+              </label>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Automatically email customers a copy of their full quote (all three tiers) after they submit
+              their contact info. Replies go to your business email.
+            </p>
           </CardContent>
         </Card>
 
