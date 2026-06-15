@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { after } from 'next/server'
 import { NextResponse } from 'next/server'
+import { mailtrap, FROM } from '@/lib/email/mailtrap'
+import { buildQuoteEmailHtml, TierData } from '@/lib/email/quote-template'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -140,11 +142,12 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fire webhook + GHL after response — after() keeps function alive until both complete
+    // Fire webhook + GHL + quote email after response — after() keeps function alive until all complete
     after(async () => {
       await Promise.allSettled([
         fireWebhookAsync(businessId, lead),
         fireGHLAsync(businessId, lead),
+        fireQuoteEmailAsync(businessId, lead),
       ])
     })
 
@@ -335,5 +338,128 @@ async function fireWebhookAsync(businessId: string, lead: Record<string, unknown
     }
   } catch (err) {
     console.error('[webhook] Network error for business', businessId, err)
+  }
+}
+
+async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unknown>) {
+  try {
+    const [settingsResult, businessResult] = await Promise.all([
+      supabaseAdmin
+        .from('business_settings')
+        .select('customer_quote_email_enabled, price_range_pct, financing_enabled, financing_term_months, financing_apr, financing_link_text, financing_link_url, redirect_url, redirect_button_text')
+        .eq('business_id', businessId)
+        .single(),
+      supabaseAdmin
+        .from('businesses')
+        .select('name, phone, email, website')
+        .eq('id', businessId)
+        .single(),
+    ])
+
+    if (settingsResult.error || businessResult.error) return
+    const settings = settingsResult.data
+    const business = businessResult.data
+
+    if (!settings.customer_quote_email_enabled) return
+
+    const customerEmail = lead.email as string
+    if (!customerEmail) return
+
+    const productId = lead.product_id as string | null
+    let tiers: TierData[] = []
+
+    if (productId && (lead.price_good || lead.price_better || lead.price_best)) {
+      let tiersQuery = supabaseAdmin
+        .from('pricing_tiers')
+        .select('tier, warranty_years, scope_of_work')
+        .eq('business_id', businessId)
+        .eq('product_id', productId)
+        .in('tier', ['good', 'better', 'best'])
+
+      tiersQuery = lead.capacity_option_id
+        ? tiersQuery.eq('capacity_option_id', lead.capacity_option_id as string)
+        : tiersQuery.is('capacity_option_id', null)
+
+      const [pricingResult, sysConfigResult] = await Promise.all([
+        tiersQuery,
+        supabaseAdmin
+          .from('tier_system_configurations')
+          .select('tier, efficiency_description, scope_of_work')
+          .eq('business_id', businessId)
+          .eq('product_id', productId),
+      ])
+
+      const pricingMap = Object.fromEntries((pricingResult.data ?? []).map(t => [t.tier, t]))
+      const sysMap = Object.fromEntries((sysConfigResult.data ?? []).map(t => [t.tier, t]))
+
+      const tierPrices: Record<string, number | null> = {
+        good: lead.price_good as number | null,
+        better: lead.price_better as number | null,
+        best: lead.price_best as number | null,
+      }
+
+      tiers = (['good', 'better', 'best'] as const)
+        .filter(t => tierPrices[t] != null)
+        .map(t => ({
+          tier: t,
+          price: tierPrices[t]!,
+          warrantyYears: pricingMap[t]?.warranty_years ?? null,
+          efficiencyDescription: sysMap[t]?.efficiency_description ?? null,
+          scopeOfWork: sysMap[t]?.scope_of_work ?? pricingMap[t]?.scope_of_work ?? null,
+        }))
+    } else if (lead.pricing_tier_id && lead.quoted_price) {
+      const { data: pt } = await supabaseAdmin
+        .from('pricing_tiers')
+        .select('tier, warranty_years, scope_of_work, features')
+        .eq('id', lead.pricing_tier_id as string)
+        .single()
+
+      if (pt) {
+        tiers = [{
+          tier: pt.tier as 'good' | 'better' | 'best',
+          price: lead.quoted_price as number,
+          warrantyYears: pt.warranty_years ?? null,
+          efficiencyDescription: null,
+          scopeOfWork: pt.scope_of_work ?? (Array.isArray(pt.features) ? pt.features.join('\n') : null),
+        }]
+      }
+    }
+
+    const html = buildQuoteEmailHtml({
+      firstName: lead.first_name as string,
+      lastName: lead.last_name as string,
+      address: lead.address as string | null,
+      city: lead.city as string | null,
+      state: lead.state as string | null,
+      zip: lead.zip as string | null,
+      productName: lead.product_name as string | null,
+      capacityLabel: lead.capacity_label as string | null,
+      tiers,
+      priceRangePct: settings.price_range_pct ?? 0,
+      financingEnabled: settings.financing_enabled,
+      financingTermMonths: settings.financing_term_months,
+      financingApr: settings.financing_apr,
+      financingLinkText: settings.financing_link_text,
+      financingLinkUrl: settings.financing_link_url,
+      businessName: business.name,
+      businessPhone: business.phone,
+      businessEmail: business.email,
+      businessWebsite: business.website,
+      redirectUrl: settings.redirect_url,
+      redirectButtonText: settings.redirect_button_text,
+    })
+
+    await mailtrap.send({
+      from: FROM,
+      ...(business.email ? { reply_to: { email: business.email } } : {}),
+      to: [{ name: `${lead.first_name} ${lead.last_name}`, email: customerEmail }],
+      subject: `Your HVAC Quote from ${business.name}`,
+      html,
+      category: 'Transactional',
+    })
+
+    console.log('[email] Quote sent to', customerEmail)
+  } catch (err) {
+    console.error('[email] Error for business', businessId, err)
   }
 }
