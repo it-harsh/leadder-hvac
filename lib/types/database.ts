@@ -101,6 +101,7 @@ export interface BusinessSettings {
   ghl_location_id: string | null
   ghl_pipeline_id: string | null
   ghl_stage_id: string | null
+  customer_quote_email_enabled: boolean
   created_at: string
   updated_at: string
 }
