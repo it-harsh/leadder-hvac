@@ -36,6 +36,21 @@ const TIER_STYLES = {
   best:   { border: '#2563eb', bg: '#eff6ff', badgeBg: '#dbeafe', badgeColor: '#1d4ed8', priceColor: '#2563eb', label: 'Best' },
 }
 
+function esc(s: string | null | undefined): string {
+  if (!s) return ''
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function safeUrl(u: string | null | undefined): string {
+  if (!u) return '#'
+  return /^https?:\/\//i.test(u) ? u.replace(/"/g, '%22') : '#'
+}
+
 function formatPrice(price: number, pct: number): string {
   if (pct > 0) {
     const high = Math.round(price * (1 + pct / 100))
@@ -56,7 +71,7 @@ function stripHtml(html: string): string {
 
 function parseScopeLines(scope: string | null): string[] {
   if (!scope) return []
-  const text = scope.trimStart().startsWith('<') ? stripHtml(scope) : scope
+  const text = stripHtml(scope)
   return text.split('\n').map(l => l.trim()).filter(Boolean)
 }
 
@@ -75,7 +90,7 @@ function buildTierCard(tier: TierData, pct: number, financingEnabled: boolean, t
         <tr>
           <td style="background:${s.bg};padding:14px;text-align:center;">
             ${isPopular ? `<span style="display:inline-block;background:#f59e0b;color:white;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-bottom:6px;">Most Popular</span><br>` : ''}
-            <span style="background:${s.badgeBg};color:${s.badgeColor};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 10px;border-radius:999px;">${s.label}</span>
+            <span style="background:${s.badgeBg};color:${s.badgeColor};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;padding:3px 10px;border-radius:999px;">${esc(s.label)}</span>
           </td>
         </tr>
         <tr>
@@ -83,9 +98,9 @@ function buildTierCard(tier: TierData, pct: number, financingEnabled: boolean, t
             <p style="margin:0 0 2px;color:#9ca3af;font-size:10px;text-transform:uppercase;letter-spacing:1px;">Estimated Price</p>
             <p style="margin:0;color:${s.priceColor};font-size:18px;font-weight:700;line-height:1.2;">${priceText}</p>
             ${tier.warrantyYears != null ? `<p style="margin:4px 0 0;color:#9ca3af;font-size:11px;">${tier.warrantyYears}-yr warranty</p>` : ''}
-            ${tier.efficiencyDescription ? `<p style="margin:10px 0 2px;color:#374151;font-size:11px;font-weight:600;">Unit Efficiency</p><p style="margin:0;color:#6b7280;font-size:11px;">${tier.efficiencyDescription}</p>` : ''}
+            ${tier.efficiencyDescription ? `<p style="margin:10px 0 2px;color:#374151;font-size:11px;font-weight:600;">Unit Efficiency</p><p style="margin:0;color:#6b7280;font-size:11px;">${esc(tier.efficiencyDescription)}</p>` : ''}
             ${monthly != null ? `<div style="margin:10px 0 0;background:#f3f4f6;border-radius:8px;padding:8px;text-align:center;"><span style="color:#1a1a3e;font-size:13px;font-weight:700;">$${monthly}/mo</span><br><span style="color:#9ca3af;font-size:10px;">with ${termMonths}-mo financing</span></div>` : ''}
-            ${scopeLines.length > 0 ? `<p style="margin:12px 0 6px;color:#374151;font-size:11px;font-weight:600;border-top:1px solid #f3f4f6;padding-top:10px;">What's Included</p><ul style="margin:0;padding-left:16px;">${scopeLines.slice(0, 6).map(l => `<li style="color:#6b7280;font-size:11px;margin-bottom:3px;">${l}</li>`).join('')}</ul>` : ''}
+            ${scopeLines.length > 0 ? `<p style="margin:12px 0 6px;color:#374151;font-size:11px;font-weight:600;border-top:1px solid #f3f4f6;padding-top:10px;">What's Included</p><ul style="margin:0;padding-left:16px;">${scopeLines.slice(0, 6).map(l => `<li style="color:#6b7280;font-size:11px;margin-bottom:3px;">${esc(l)}</li>`).join('')}</ul>` : ''}
           </td>
         </tr>
       </table>
@@ -110,11 +125,11 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
     .join('')
 
   const financingCtaHtml = financingEnabled && financingLinkUrl && financingLinkText
-    ? `<tr><td style="background:#ffffff;padding:0 32px 16px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;text-align:center;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;">Flexible financing available</p><a href="${financingLinkUrl}" style="display:inline-block;border:2px solid #4f46e5;color:#4f46e5;font-size:13px;font-weight:600;padding:8px 24px;border-radius:999px;text-decoration:none;">${financingLinkText}</a></td></tr>`
+    ? `<tr><td style="background:#ffffff;padding:0 32px 16px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;text-align:center;"><p style="margin:0 0 8px;color:#6b7280;font-size:12px;">Flexible financing available</p><a href="${safeUrl(financingLinkUrl)}" style="display:inline-block;border:2px solid #4f46e5;color:#4f46e5;font-size:13px;font-weight:600;padding:8px 24px;border-radius:999px;text-decoration:none;">${esc(financingLinkText)}</a></td></tr>`
     : ''
 
   const ctaHtml = redirectUrl && redirectButtonText
-    ? `<tr><td style="background:#ffffff;padding:0 32px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;text-align:center;"><a href="${redirectUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:999px;text-decoration:none;">${redirectButtonText}</a></td></tr>`
+    ? `<tr><td style="background:#ffffff;padding:0 32px 28px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;text-align:center;"><a href="${safeUrl(redirectUrl)}" style="display:inline-block;background:#4f46e5;color:#ffffff;font-size:14px;font-weight:600;padding:12px 32px;border-radius:999px;text-decoration:none;">${esc(redirectButtonText)}</a></td></tr>`
     : ''
 
   return `<!DOCTYPE html>
@@ -122,7 +137,7 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Your HVAC Quote from ${businessName}</title>
+  <title>Your HVAC Quote from ${esc(businessName)}</title>
 </head>
 <body style="margin:0;padding:0;background:#f7f8fc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fc;">
@@ -133,16 +148,16 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
           <tr>
             <td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:32px;text-align:center;">
               <p style="margin:0 0 6px;color:rgba(255,255,255,0.7);font-size:12px;text-transform:uppercase;letter-spacing:1px;">HVAC Quote</p>
-              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;">${businessName}</h1>
-              <p style="margin:10px 0 0;color:rgba(255,255,255,0.85);font-size:15px;">Hi ${firstName}, here's your personalized estimate</p>
+              <h1 style="margin:0;color:#ffffff;font-size:26px;font-weight:700;">${esc(businessName)}</h1>
+              <p style="margin:10px 0 0;color:rgba(255,255,255,0.85);font-size:15px;">Hi ${esc(firstName)}, here's your personalized estimate</p>
             </td>
           </tr>
 
-          ${addressLine ? `<tr><td style="background:#eef2ff;padding:12px 32px;border-left:1px solid #e0e7ff;border-right:1px solid #e0e7ff;"><p style="margin:0;color:#4f46e5;font-size:13px;">&#128205; ${addressLine}</p></td></tr>` : ''}
+          ${addressLine ? `<tr><td style="background:#eef2ff;padding:12px 32px;border-left:1px solid #e0e7ff;border-right:1px solid #e0e7ff;"><p style="margin:0;color:#4f46e5;font-size:13px;">&#128205; ${esc(addressLine)}</p></td></tr>` : ''}
 
           <tr>
             <td style="background:#ffffff;padding:24px 32px 12px;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;">
-              ${productLine ? `<h2 style="margin:0 0 4px;color:#1a1a3e;font-size:17px;font-weight:700;">${productLine}</h2>` : ''}
+              ${productLine ? `<h2 style="margin:0 0 4px;color:#1a1a3e;font-size:17px;font-weight:700;">${esc(productLine)}</h2>` : ''}
               <p style="margin:0;color:#6b7280;font-size:13px;">Your estimated installation price range</p>
             </td>
           </tr>
@@ -161,9 +176,9 @@ export function buildQuoteEmailHtml(input: QuoteEmailInput): string {
           <tr>
             <td style="background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;padding:24px 32px;">
               <p style="margin:0 0 10px;color:#374151;font-size:14px;font-weight:600;">Questions? Get in touch:</p>
-              ${businessPhone ? `<p style="margin:0 0 5px;color:#4b5563;font-size:13px;">&#128222; ${businessPhone}</p>` : ''}
-              ${businessEmail ? `<p style="margin:0 0 5px;color:#4b5563;font-size:13px;">&#9993; ${businessEmail}</p>` : ''}
-              ${businessWebsite ? `<p style="margin:0;font-size:13px;"><a href="${businessWebsite}" style="color:#4f46e5;text-decoration:none;">&#127760; ${businessWebsite}</a></p>` : ''}
+              ${businessPhone ? `<p style="margin:0 0 5px;color:#4b5563;font-size:13px;">&#128222; ${esc(businessPhone)}</p>` : ''}
+              ${businessEmail ? `<p style="margin:0 0 5px;color:#4b5563;font-size:13px;">&#9993; ${esc(businessEmail)}</p>` : ''}
+              ${businessWebsite ? `<p style="margin:0;font-size:13px;"><a href="${safeUrl(businessWebsite)}" style="color:#4f46e5;text-decoration:none;">&#127760; ${esc(businessWebsite)}</a></p>` : ''}
               <p style="margin:20px 0 0;color:#d1d5db;font-size:11px;text-align:center;">Powered by Leadder &middot; This is an automated message</p>
             </td>
           </tr>
