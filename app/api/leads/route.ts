@@ -143,12 +143,13 @@ export async function POST(request: Request) {
       )
     }
 
-    // Fire webhook + GHL + quote email after response — after() keeps function alive until all complete
+    // DEBUG: run email synchronously to capture logs
+    await fireQuoteEmailAsync(businessId, lead, specs)
+
     after(async () => {
       await Promise.allSettled([
         fireWebhookAsync(businessId, lead),
         fireGHLAsync(businessId, lead),
-        fireQuoteEmailAsync(businessId, lead, specs),
       ])
     })
 
