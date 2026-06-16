@@ -143,8 +143,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // DEBUG: run email synchronously to capture logs
-    await fireQuoteEmailAsync(businessId, lead, specs)
+    // DEBUG: run email synchronously to capture result
+    const emailResult = await fireQuoteEmailAsync(businessId, lead, specs)
 
     after(async () => {
       await Promise.allSettled([
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       ])
     })
 
-    return NextResponse.json({ success: true, lead })
+    return NextResponse.json({ success: true, lead, _emailDebug: emailResult })
   } catch (error) {
     console.error('Error in leads API:', error)
     return NextResponse.json(
@@ -343,7 +343,7 @@ async function fireWebhookAsync(businessId: string, lead: Record<string, unknown
   }
 }
 
-async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unknown>, specs?: { label: string; value: string }[]) {
+async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unknown>, specs?: { label: string; value: string }[]): Promise<string> {
   try {
     const [settingsResult, businessResult] = await Promise.all([
       supabaseAdmin
@@ -359,17 +359,15 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
     ])
 
     if (settingsResult.error || businessResult.error) {
-      console.error('[email] settings/business query failed', settingsResult.error?.message, businessResult.error?.message)
-      return
+      return `settings_error: ${settingsResult.error?.message} | ${businessResult.error?.message}`
     }
     const settings = settingsResult.data
     const business = businessResult.data
 
-    console.log('[email] enabled:', settings.customer_quote_email_enabled)
-    if (!settings.customer_quote_email_enabled) return
+    if (!settings.customer_quote_email_enabled) return 'disabled'
 
     const customerEmail = lead.email as string
-    if (!customerEmail) return
+    if (!customerEmail) return 'no_email'
 
     const productId = lead.product_id as string | null
     let tiers: TierData[] = []
@@ -466,7 +464,9 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
     })
 
     console.log('[email] Mailtrap send success to', customerEmail)
+    return `sent:${customerEmail}`
   } catch (err) {
-    console.error('[email] Error for business', businessId, err)
+    return `error: ${(err as Error).message}`
   }
+  return 'unknown_exit'
 }
