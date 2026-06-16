@@ -466,7 +466,7 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
     console.log('[email] Mailtrap send success to', customerEmail)
     return `sent:${customerEmail}`
   } catch (err) {
-    return `error: ${(err as Error).message}`
+    return `error [from=${FROM.email}]: ${(err as Error).message}`
   }
   return 'unknown_exit'
 }
