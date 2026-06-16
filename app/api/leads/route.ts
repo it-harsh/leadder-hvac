@@ -357,10 +357,14 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
         .single(),
     ])
 
-    if (settingsResult.error || businessResult.error) return
+    if (settingsResult.error || businessResult.error) {
+      console.error('[email] settings/business query failed', settingsResult.error?.message, businessResult.error?.message)
+      return
+    }
     const settings = settingsResult.data
     const business = businessResult.data
 
+    console.log('[email] enabled:', settings.customer_quote_email_enabled)
     if (!settings.customer_quote_email_enabled) return
 
     const customerEmail = lead.email as string
@@ -460,7 +464,7 @@ async function fireQuoteEmailAsync(businessId: string, lead: Record<string, unkn
       category: 'Transactional',
     })
 
-    console.log('[email] Quote sent to', customerEmail)
+    console.log('[email] Mailtrap send success to', customerEmail)
   } catch (err) {
     console.error('[email] Error for business', businessId, err)
   }
