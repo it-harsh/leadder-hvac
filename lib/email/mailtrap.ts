@@ -10,6 +10,6 @@ export const mailtrap = new MailtrapClient({
 })
 
 export const FROM = {
-  email: process.env.MAILTRAP_FROM_EMAIL ?? 'noreply@leadder.io',
-  name: process.env.MAILTRAP_FROM_NAME ?? 'Leadder',
+  email: (process.env.MAILTRAP_FROM_EMAIL ?? 'noreply@leadder.io').trim(),
+  name: (process.env.MAILTRAP_FROM_NAME ?? 'Leadder').trim(),
 }
