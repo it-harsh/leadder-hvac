@@ -35,8 +35,11 @@ function esc(s: string): string {
 }
 
 async function sendAdminNotification(businessName: string, email: string, tempPassword: string) {
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL?.trim()
-  if (!adminEmail) return
+  const raw = process.env.ADMIN_NOTIFICATION_EMAIL?.trim()
+  if (!raw) return
+  const recipients = raw.split(',').map(e => e.trim()).filter(Boolean)
+  if (!recipients.length) return
+  const [primaryEmail, ...bccEmails] = recipients
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
@@ -58,7 +61,8 @@ async function sendAdminNotification(businessName: string, email: string, tempPa
 
   await mailtrap.send({
     from: FROM,
-    to: [{ email: adminEmail }],
+    to: [{ email: primaryEmail }],
+    ...(bccEmails.length ? { bcc: bccEmails.map(e => ({ email: e })) } : {}),
     subject: `New signup: ${businessName.replace(/[\r\n]/g, ' ')}`,
     html,
     category: 'Transactional',
