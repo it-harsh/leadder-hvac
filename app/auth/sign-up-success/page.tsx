@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Mail, ArrowRight } from 'lucide-react'
+import { Clock, ArrowRight } from 'lucide-react'
 import Image from 'next/image'
 
 export default function SignUpSuccessPage() {
@@ -16,22 +16,22 @@ export default function SignUpSuccessPage() {
           <CardHeader className="space-y-1 text-center">
             <div className="flex justify-center mb-4">
               <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
-                <Mail className="w-8 h-8 text-primary" />
+                <Clock className="w-8 h-8 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-card-foreground">Check your email</CardTitle>
+            <CardTitle className="text-2xl font-bold text-card-foreground">Request received</CardTitle>
             <CardDescription className="text-muted-foreground">
-              We sent you a confirmation link. Please check your email to verify your account.
+              Your account has been created and is pending review.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-muted/50 rounded-lg border border-border">
               <p className="text-sm text-muted-foreground text-center">
-                After confirming your email, you can sign in and start configuring your instant estimator.
+                Our team will reach out shortly with your login credentials. Please allow up to 24 hours.
               </p>
             </div>
-            
-            <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+
+            <Button asChild variant="outline" className="w-full">
               <Link href="/auth/login">
                 Go to Sign In
                 <ArrowRight className="ml-2 h-4 w-4" />

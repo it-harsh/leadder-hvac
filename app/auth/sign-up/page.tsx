@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,12 +11,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, AlertCircle } from 'lucide-react'
 import Image from 'next/image'
 
-const supabase = createClient()
-
 export default function SignUpPage() {
   const [businessName, setBusinessName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -28,36 +24,20 @@ export default function SignUpPage() {
     setLoading(true)
 
     try {
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
-            `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/portal`,
-          data: { business_name: businessName },
-        },
+      const res = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessName, email }),
       })
 
-      if (signUpError) {
-        setError(signUpError.message)
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong. Please try again.')
         return
       }
 
-      if (authData.user) {
-        const res = await fetch('/api/auth/create-business', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: authData.user.id, businessName, email }),
-        })
-
-        if (!res.ok) {
-          const data = await res.json()
-          setError(data.error || 'Failed to create business')
-          return
-        }
-
-        router.push('/auth/sign-up-success')
-      }
+      router.push('/auth/sign-up-success')
     } catch {
       setError('An unexpected error occurred. Please try again.')
     } finally {
@@ -74,8 +54,8 @@ export default function SignUpPage() {
 
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Create account</CardTitle>
-            <CardDescription>Set up your HVAC business portal in minutes</CardDescription>
+            <CardTitle className="text-2xl font-bold">Request access</CardTitle>
+            <CardDescription>Submit your details and we&apos;ll get you set up</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSignUp} className="space-y-4">
@@ -110,28 +90,14 @@ export default function SignUpPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Create a strong password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                />
-                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
-              </div>
-
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Creating account...
+                    Submitting...
                   </>
                 ) : (
-                  'Create account'
+                  'Request access'
                 )}
               </Button>
             </form>
