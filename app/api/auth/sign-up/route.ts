@@ -55,7 +55,8 @@ async function sendAdminNotification(businessName: string, email: string, tempPa
       <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#15803d;">Temporary Password</p>
       <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;color:#14532d;font-family:monospace;">${esc(tempPassword)}</p>
     </div>
-    <p style="margin:0;font-size:12px;color:#9ca3af;">Share these credentials with the user to grant them access.</p>
+    <p style="margin:0 0 16px;font-size:12px;color:#9ca3af;">Share these credentials with the user to grant them access.</p>
+    <a href="mailto:${esc(email)}?subject=${encodeURIComponent('Your Leadder Login Credentials')}&body=${encodeURIComponent(`Hi,\n\nYour Leadder account is ready. Here are your login credentials:\n\nEmail: ${email}\nTemporary Password: ${tempPassword}\n\nSign in at: ${process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.leadder.io'}/auth/login\n\nThanks,\nThe Leadder Team`)}" style="display:inline-block;background:#047857;color:#ffffff;font-size:14px;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none;">Send credentials to user</a>
   </div>
 </body></html>`
 
