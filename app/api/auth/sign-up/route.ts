@@ -30,6 +30,10 @@ async function findUniqueSlug(name: string): Promise<string> {
   return `${base}-${i}`
 }
 
+function esc(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 async function sendAdminNotification(businessName: string, email: string, tempPassword: string) {
   const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL?.trim()
   if (!adminEmail) return
@@ -41,12 +45,12 @@ async function sendAdminNotification(businessName: string, email: string, tempPa
     <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#9ca3af;">New Signup Request</p>
     <h2 style="margin:0 0 24px;font-size:22px;font-weight:800;color:#1a1a3e;">Leadder</h2>
     <table width="100%" cellpadding="0" cellspacing="0">
-      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Business</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;">${businessName}</td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Email</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;">${email}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Business</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;">${esc(businessName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;font-size:13px;">Email</td><td style="padding:6px 0;font-size:13px;font-weight:600;color:#111827;">${esc(email)}</td></tr>
     </table>
     <div style="margin:24px 0;padding:16px;background:#f0fdf4;border:2px solid #16a34a;border-radius:8px;">
       <p style="margin:0 0 4px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#15803d;">Temporary Password</p>
-      <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;color:#14532d;font-family:monospace;">${tempPassword}</p>
+      <p style="margin:0;font-size:20px;font-weight:800;letter-spacing:2px;color:#14532d;font-family:monospace;">${esc(tempPassword)}</p>
     </div>
     <p style="margin:0;font-size:12px;color:#9ca3af;">Share these credentials with the user to grant them access.</p>
   </div>
@@ -55,7 +59,7 @@ async function sendAdminNotification(businessName: string, email: string, tempPa
   await mailtrap.send({
     from: FROM,
     to: [{ email: adminEmail }],
-    subject: `New signup: ${businessName}`,
+    subject: `New signup: ${businessName.replace(/[\r\n]/g, ' ')}`,
     html,
     category: 'Transactional',
   })
