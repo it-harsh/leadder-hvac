@@ -15,8 +15,10 @@ Leadder gives HVAC businesses a branded instant-estimate widget they embed on th
 ## Features Completed
 
 ### Auth & Onboarding
-- Sign up, login, forgot password pages
-- Business creation on first sign-up (name, slug, phone, email, website)
+- Admin-controlled signup — new accounts are created with a system-generated temp password (no self-serve email/password entry); admin is notified by email with a "Send credentials to user" CTA button to hand off login details
+- Admin notification email supports multiple recipients via comma-separated `ADMIN_NOTIFICATION_EMAIL`, with HTML-escaped business name/email
+- Login, forgot password pages
+- Business creation on sign-up (name, slug, phone, email, website)
 - Auth-gated portal with Supabase SSR sessions
 
 ### Admin Portal
@@ -57,6 +59,7 @@ Leadder gives HVAC businesses a branded instant-estimate widget they embed on th
 ### Lead Capture
 - Leads table in portal with all customer details
 - Captures: name, email, phone, address, product, capacity, tier, all 3 prices (good/better/best)
+- Customer quote confirmation email — sent automatically after lead creation (fire-and-forget) via Mailtrap, with spec grid, green header, on-brand tier layout, and financing details; toggleable per business in Settings → Integrations → Customer Quote Email (on by default)
 
 ### Widget Embed
 - Embed code page with Simple (script tag) and Advanced (manual init) tabs
@@ -78,7 +81,7 @@ Leadder gives HVAC businesses a branded instant-estimate widget they embed on th
 | Feature | Notes |
 |---|---|
 | Business logo upload | `logo_url` column removed — no upload UI was ever built |
-| Email notifications | No email to business owner on new lead |
+| Business-owner lead notification email | Customer gets a quote confirmation email; the business owner is not emailed when a new lead comes in |
 | Lead CSV export | Leads are view-only in the portal |
 | Analytics / charts | No conversion rate, revenue trends, or funnel reporting |
 | Multi-user / team | Single owner per business account |
@@ -112,6 +115,11 @@ cp .env.example .env.local
 #   NEXT_PUBLIC_SUPABASE_ANON_KEY
 #   SUPABASE_SERVICE_ROLE_KEY
 #   NEXT_PUBLIC_APP_URL
+#   MAILTRAP_API_TOKEN         # customer quote emails + admin signup notifications
+#   MAILTRAP_FROM_EMAIL        # optional, defaults to noreply@leadder.io
+#   MAILTRAP_FROM_NAME         # optional, defaults to Leadder
+#   MAILTRAP_TEST_INBOX_ID     # optional, sandbox mode for local/dev testing
+#   ADMIN_NOTIFICATION_EMAIL   # comma-separated; who gets new-signup notifications
 
 # 3. Run schema (Supabase SQL Editor)
 # Execute scripts/clean/001_schema.sql on a fresh project
